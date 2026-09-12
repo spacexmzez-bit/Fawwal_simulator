@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>محاكي الفوال</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #game-container {
+      border: 3px solid #444;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: 960,
+      height: 600,
+      parent: 'game-container',
+      backgroundColor: '#2d3436',
+      scene: {
+        preload: preload,
+        create: create,
+        update: update
+      }
+    };
+
+    const game = new Phaser.Game(config);
+
+    // حالة اللعبة والاقتصاد
+    let gameState = {
+      money: 50,
+      strikes: 0,
+      maxStrikes: 3,
+      xp: 0,
+      selectedCustomerIndex: null,
+      stations: {
+        ful: { readyPlates: 0, remainingServings: 5, maxServings: 5, isCooking: false, isScooping: false },
+        tamees: { doughReady: false, inOvenCount: 0, readyBread: 0, maxOven: 2 },
+        tea: { cupsReady: 0, remainingCups: 4, maxCups: 4, isBoiling: false }
+      },
+      costs: { refillFul: 5, boilTea: 4 },
+      prices: {
+        ful: { base: 4, olive_oil: 2 },
+        tamees: { base: 1 },
+        tea: { base: 2, sugar: 0 }
+      }
+    };
+
+    let customers = [];
+    let uiText;
+
+    function preload() {}
+
+    function create() {
+      const scene = this;
+
+      // شريط المعلومات العلوي
+      uiText = scene.add.text(20, 20, '', { font: '18px Arial', fill: '#ffffff' });
+      updateUI();
+
+      // رسم المحطات الثلاث
+      createFulStation(scene, 100, 380);
+      createTameesStation(scene, 380, 380);
+      createTeaStation(scene, 660, 380);
+
+      // رسم خانات الزبائن الثلاث
+      for (let i = 0; i < 3; i++) {
+        spawnCustomer(scene, i);
+      }
+    }
+
+    function update(time, delta) {
+      // تحديث صبر الزبائن
+      customers.forEach((cust, index) => {
+        if (!cust.active) return;
+        cust.patience -= delta * 0.005; // سرعة نفاد الصبر
+
+        // تحديث شريط الصبر
+        cust.patienceBar.width = Math.max(0, (cust.patience / 100) * 120);
+
+        if (cust.patience <= 0) {
+          custFailed(this, index);
+        }
+      });
+    }
+
+    function updateUI() {
+      uiText.setText(`الرصيد: ${gameState.money} ريال | الأخطاء: ${gameState.strikes}/${gameState.maxStrikes} | الخبرة: ${gameState.xp}`);
+    }
+
+    // --- محطة الفول ---
+    function createFulStation(scene, x, y) {
+      const bg = scene.add.rectangle(x, y, 220, 160, 0x8c7ae6).setOrigin(0);
+      scene.add.text(x + 10, y + 10, 'محطة الفول', { font: '16px Arial', fill: '#fff' });
+
+      const statusText = scene.add.text(x + 10, y + 40, '', { font: '14px Arial', fill: '#fff' });
+
+      function updateFulText() {
+        statusText.setText(`الجرة: ${gameState.stations.ful.remainingServings}/${gameState.stations.ful.maxServings}\nصحون جاهزة: ${gameState.stations.ful.readyPlates}`);
+      }
+      updateFulText();
+
+      // زر الغرف
+      const scoopBtn = scene.add.rectangle(x + 10, y + 90, 90, 40, 0xe1b12c).setOrigin(0).setInteractive();
+      const scoopLabel = scene.add.text(x + 20, y + 102, 'غرف فول', { font: '14px Arial', fill: '#000' });
+
+      scoopBtn.on('pointerdown', () => {
+        const ful = gameState.stations.ful;
+        if (ful.remainingServings > 0 && !ful.isScooping && !ful.isCooking) {
+          ful.isScooping = true;
+          scoopLabel.setText('جاري...');
+          scene.time.delayedCall(1500, () => {
+            ful.remainingServings--;
+            ful.readyPlates++;
+            ful.isScooping = false;
+            scoopLabel.setText('غرف فول');
+            updateFulText();
+          });
+        }
+      });
+
+      // زر طبخ جرة جديدة
+      const cookBtn = scene.add.rectangle(x + 115, y + 90, 90, 40, 0xc23616).setOrigin(0).setInteractive();
+      const cookLabel = scene.add.text(x + 125, y + 102, 'طبخ (5ر)', { font: '14px Arial', fill: '#fff' });
+
+      cookBtn.on('pointerdown', () => {
+        const ful = gameState.stations.ful;
+        if (!ful.isCooking && gameState.money >= gameState.costs.refillFul) {
+          gameState.money -= gameState.costs.refillFul;
+          ful.isCooking = true;
+          cookLabel.setText('يطبخ...');
+          updateUI();
+          scene.time.delayedCall(3000, () => {
+            ful.remainingServings = ful.maxServings;
+            ful.isCooking = false;
+            cookLabel.setText('طبخ (5ر)');
+            updateFulText();
+          });
+        }
+      });
+    }
+
+    // --- محطة التميس ---
+    function createTameesStation(scene, x, y) {
+      scene.add.rectangle(x, y, 220, 160, 0x44bd32).setOrigin(0);
+      scene.add.text(x + 10, y + 10, 'محطة التميس', { font: '16px Arial', fill: '#fff' });
+
+      const statusText = scene.add.text(x + 10, y + 40, '', { font: '14px Arial', fill: '#fff' });
+      function updateTameesText() {
+        statusText.setText(`عجين مفرود: ${gameState.stations.tamees.doughReady ? 'جاهز' : 'لا يوجد'}\nتميس جاهز: ${gameState.stations.tamees.readyBread}`);
+      }
+      updateTameesText();
+
+      // عجن وفرد
+      const kneadBtn = scene.add.rectangle(x + 10, y + 90, 90, 40, 0xfa983a).setOrigin(0).setInteractive();
+      scene.add.text(x + 20, y + 102, 'عجن وفرد', { font: '14px Arial', fill: '#000' });
+
+      kneadBtn.on('pointerdown', () => {
+        gameState.stations.tamees.doughReady = true;
+        updateTameesText();
+      });
+
+      // إدخال التنور
+      const bakeBtn = scene.add.rectangle(x + 115, y + 90, 90, 40, 0xeb2f06).setOrigin(0).setInteractive();
+      const bakeLabel = scene.add.text(x + 125, y + 102, 'للتنور', { font: '14px Arial', fill: '#fff' });
+
+      bakeBtn.on('pointerdown', () => {
+        const tamees = gameState.stations.tamees;
+        if (tamees.doughReady && tamees.inOvenCount < tamees.maxOven) {
+          tamees.doughReady = false;
+          tamees.inOvenCount++;
+          bakeLabel.setText('خبز...');
+          updateTameesText();
+
+          scene.time.delayedCall(2500, () => {
+            tamees.inOvenCount--;
+            tamees.readyBread++;
+            bakeLabel.setText('للتنور');
+            updateTameesText();
+          });
+        }
+      });
+    }
+
+    // --- محطة الشاي ---
+    function createTeaStation(scene, x, y) {
+      scene.add.rectangle(x, y, 220, 160, 0x30336b).setOrigin(0);
+      scene.add.text(x + 10, y + 10, 'محطة الشاي', { font: '16px Arial', fill: '#fff' });
+
+      const statusText = scene.add.text(x + 10, y + 40, '', { font: '14px Arial', fill: '#fff' });
+      function updateTeaText() {
+        statusText.setText(`أكواب البراد: ${gameState.stations.tea.remainingCups}/${gameState.stations.tea.maxCups}\nأكواب جاهزة: ${gameState.stations.tea.cupsReady}`);
+      }
+      updateTeaText();
+
+      // زر الصب
+      const pourBtn = scene.add.rectangle(x + 10, y + 90, 90, 40, 0x22a6b3).setOrigin(0).setInteractive();
+      scene.add.text(x + 25, y + 102, 'صب كوب', { font: '14px Arial', fill: '#000' });
+
+      pourBtn.on('pointerdown', () => {
+        const tea = gameState.stations.tea;
+        if (tea.remainingCups > 0 && !tea.isBoiling) {
+          tea.remainingCups--;
+          tea.cupsReady++;
+          updateTeaText();
+        }
+      });
+
+      // زر الغليان
+      const boilBtn = scene.add.rectangle(x + 115, y + 90, 90, 40, 0xeb4d4b).setOrigin(0).setInteractive();
+      const boilLabel = scene.add.text(x + 125, y + 102, 'غليان (4ر)', { font: '14px Arial', fill: '#fff' });
+
+      boilBtn.on('pointerdown', () => {
+        const tea = gameState.stations.tea;
+        if (!tea.isBoiling && gameState.money >= gameState.costs.boilTea) {
+          gameState.money -= gameState.costs.boilTea;
+          tea.isBoiling = true;
+          boilLabel.setText('يغلي...');
+          updateUI();
+          scene.time.delayedCall(2500, () => {
+            tea.remainingCups = tea.maxCups;
+            tea.isBoiling = false;
+            boilLabel.setText('غليان (4ر)');
+            updateTeaText();
+          });
+        }
+      });
+    }
+
+    // --- الزبائن ---
+    function spawnCustomer(scene, slotIndex) {
+      const x = 120 + slotIndex * 270;
+      const y = 100;
+
+      // اختيار طلب عشوائي بسيط (فول أو تميس أو شاي)
+      const menuOptions = ['ful', 'tamees', 'tea'];
+      const chosenItem = menuOptions[Math.floor(Math.random() * menuOptions.length)];
+
+      const box = scene.add.rectangle(x, y, 200, 180, 0x535c68).setOrigin(0).setInteractive();
+      const label = scene.add.text(x + 15, y + 15, `زبون #${slotIndex + 1}\nالطلب: ${getArabicName(chosenItem)}`, { font: '16px Arial', fill: '#fff' });
+
+      // شريط الصبر
+      const barBg = scene.add.rectangle(x + 15, y + 70, 120, 12, 0x2f3542).setOrigin(0);
+      const patienceBar = scene.add.rectangle(x + 15, y + 70, 120, 12, 0x2ed573).setOrigin(0);
+
+      // زر تسليم الطلب
+      const serveBtn = scene.add.rectangle(x + 15, y + 100, 120, 35, 0x1e90ff).setOrigin(0).setInteractive();
+      scene.add.text(x + 30, y + 110, 'تسليم الطلب', { font: '14px Arial', fill: '#fff' });
+
+      const customerData = {
+        active: true,
+        order: chosenItem,
+        patience: 100,
+        box,
+        label,
+        barBg,
+        patienceBar,
+        serveBtn
+      };
+
+      serveBtn.on('pointerdown', () => {
+        attemptDelivery(scene, slotIndex);
+      });
+
+      customers[slotIndex] = customerData;
+    }
+
+    function getArabicName(item) {
+      if (item === 'ful') return 'صحن فول';
+      if (item === 'tamees') return 'رغيف تميس';
+      if (item === 'tea') return 'كوب شاي';
+      return item;
+    }
+
+    function attemptDelivery(scene, slotIndex) {
+      const cust = customers[slotIndex];
+      if (!cust || !cust.active) return;
+
+      let isSuccess = false;
+      let earned = 0;
+
+      if (cust.order === 'ful' && gameState.stations.ful.readyPlates > 0) {
+        gameState.stations.ful.readyPlates--;
+        earned = gameState.prices.ful.base + gameState.prices.ful.olive_oil;
+        isSuccess = true;
+      } else if (cust.order === 'tamees' && gameState.stations.tamees.readyBread > 0) {
+        gameState.stations.tamees.readyBread--;
+        earned = gameState.prices.tamees.base;
+        isSuccess = true;
+      } else if (cust.order === 'tea' && gameState.stations.tea.cupsReady > 0) {
+        gameState.stations.tea.cupsReady--;
+        earned = gameState.prices.tea.base;
+        isSuccess = true;
+      }
+
+      if (isSuccess) {
+        // حساب خصم الصبر
+        const payout = Math.round(earned * (cust.patience / 100));
+        gameState.money += Math.max(1, payout);
+        gameState.xp += 10;
+        updateUI();
+        clearCustomer(slotIndex);
+        scene.time.delayedCall(1200, () => spawnCustomer(scene, slotIndex));
+      } else {
+        // عقوبة تسليم خاطئ أو الطلب غير جاهز
+        cust.patience = Math.max(0, cust.patience - 25);
+      }
+    }
+
+    function custFailed(scene, slotIndex) {
+      clearCustomer(slotIndex);
+      gameState.strikes++;
+      updateUI();
+
+      if (gameState.strikes >= gameState.maxStrikes) {
+        alert('انتهت دورة اللعب! غضب 3 زبائن.');
+        location.reload();
+      } else {
+        scene.time.delayedCall(1500, () => spawnCustomer(scene, slotIndex));
+      }
+    }
+
+    function clearCustomer(slotIndex) {
+      const cust = customers[slotIndex];
+      if (!cust) return;
+      cust.active = false;
+      cust.box.destroy();
+      cust.label.destroy();
+      cust.barBg.destroy();
+      cust.patienceBar.destroy();
+      cust.serveBtn.destroy();
+    }
+  </script>
+</body>
+</html>
