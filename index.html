@@ -94,45 +94,32 @@
       // صور الفول
       this.load.image('pot_full', 'Fuwl_sprites_14/sprite-2-1_3.png');
       this.load.image('pot_empty', 'Fuwl_sprites_14/sprite-3-1_2.png');
-      this.load.image('cups_stack', 'Fuwl_sprites_14/sprite-1-3.png');
-      this.load.image('plates_stack', 'Fuwl_sprites_14/sprite-2-2_3.png');
-      this.load.image('lids_stack', 'Fuwl_sprites_14/sprite-2-3_3.png');
       this.load.image('ful_closed', 'Fuwl_sprites_14/sprite-3-2.png');
       this.load.image('ful_open', 'Fuwl_sprites_14/sprite-3-3.png');
-      this.load.image('olive_oil', 'Fuwl_sprites_14/sprite-5-1_2.png');
-      this.load.image('cumin', 'Fuwl_sprites_14/sprite-5-2_2.png');
-      this.load.image('lemon_bowl', 'Fuwl_sprites_14/sprite-5-3_3.png');
 
       // صور التميس
-      this.load.image('dough_ball', 'Tamees_sprites_9/sprite-2-1_2.png');
-      this.load.image('dough_box', 'Tamees_sprites_9/sprite-2-2_2.png');
       this.load.image('tamees_plain', 'Tamees_sprites_9/sprite-2-3_2.png');
-      this.load.image('tamees_cheese', 'Tamees_sprites_9/sprite-2-4_2.png');
-      this.load.image('dough_flat', 'Tamees_sprites_9/sprite-3-1.png');
       this.load.image('oven_empty', 'Tamees_sprites_9/sprite-5-3_2.png');
       this.load.image('oven_baking', 'Tamees_sprites_9/sprite-5-4_2.png');
-      this.load.image('tamees_burnt', 'Tamees_sprites_9/sprite-5-5.png');
-      this.load.image('cheese', 'Tamees_sprites_9/sprite-6-1.png');
 
       // صور الشاي
       this.load.image('teapot_full', 'Tea_sprites_9/sprite-2-1.png');
       this.load.image('teapot_empty', 'Tea_sprites_9/sprite-2-2.png');
-      this.load.image('cup_empty', 'Tea_sprites_9/sprite-2-4.png');
       this.load.image('cup_full', 'Tea_sprites_9/sprite-2-5.png');
-      this.load.image('mint', 'Tea_sprites_9/sprite-5-1.png');
-      this.load.image('sugar', 'Tea_sprites_9/sprite-5-3.png');
+
+      // صور الزبائن (تم وضعها في مجلد الشاي بناءً على طلبك)
+      this.load.image('girl_happy', 'Tea_sprites_9/1789318266082.png');
+      this.load.image('girl_neutral', 'Tea_sprites_9/1789318242744.png');
+      this.load.image('girl_angry', 'Tea_sprites_9/1789318194567.png');
+      this.load.image('man_happy', 'Tea_sprites_9/1789318139305.png');
+      this.load.image('man_neutral', 'Tea_sprites_9/1789318081083.png');
+      this.load.image('man_angry', 'Tea_sprites_9/1789318077271.png');
     }
 
     // --- دوال المؤثرات الحركية (Juice Helpers) ---
     function applyButtonEffect(scene, target) {
       target.on('pointerdown', () => {
-        scene.tweens.add({
-          targets: target,
-          scaleX: target.scaleX * 0.9,
-          scaleY: target.scaleY * 0.9,
-          duration: 60,
-          yoyo: true
-        });
+        scene.tweens.add({ targets: target, scaleX: target.scaleX * 0.9, scaleY: target.scaleY * 0.9, duration: 60, yoyo: true });
       });
     }
 
@@ -141,49 +128,32 @@
         fontSize: '24px', fontStyle: 'bold', fill: color, stroke: '#000', strokeThickness: 4
       }).setDepth(20).setOrigin(0.5);
       
-      scene.tweens.add({
-        targets: t,
-        y: y - 60,
-        alpha: 0,
-        duration: 1200,
-        ease: 'Cubic.easeOut',
-        onComplete: () => t.destroy()
-      });
+      scene.tweens.add({ targets: t, y: y - 60, alpha: 0, duration: 1200, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
     }
 
     function showProgressBar(scene, x, y, width, duration, color) {
       let bg = scene.add.rectangle(x, y, width, 12, 0x000000, 0.8).setOrigin(0).setDepth(15);
       let bar = scene.add.rectangle(x + 2, y + 2, 0, 8, color).setOrigin(0).setDepth(16);
       
-      scene.tweens.add({
-        targets: bar,
-        width: width - 4,
-        duration: duration,
-        onComplete: () => { bg.destroy(); bar.destroy(); }
-      });
+      scene.tweens.add({ targets: bar, width: width - 4, duration: duration, onComplete: () => { bg.destroy(); bar.destroy(); } });
     }
 
     function create() {
       const scene = this;
       window.addEventListener('resize', () => scene.scale.refresh());
 
-      // 1. رسم الخلفية
       scene.add.image(480, 200, 'bg_restaurant').setDisplaySize(960, 420).setDepth(0);
 
-      // 2. خانات الزبائن
+      // رسم الزبائن
       for (let i = 0; i < 3; i++) spawnCustomer(scene, i);
 
-      // 3. الكاونتر
       scene.add.image(480, 475, 'counter_wood').setDisplaySize(960, 260).setDepth(2);
 
-      // 4. شريط المعلومات العلوي
+      // شريط المعلومات
       scene.add.rectangle(480, 25, 960, 50, 0x1e272e, 0.85).setDepth(10);
-      uiText = scene.add.text(20, 14, '', {
-        fontFamily: 'system-ui, sans-serif', fontSize: '20px', fontStyle: 'bold', fill: '#ffffff'
-      }).setDepth(11);
+      uiText = scene.add.text(20, 14, '', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', fontStyle: 'bold', fill: '#ffffff' }).setDepth(11);
       updateUI();
 
-      // 5. المحطات
       createFulStation(scene, 50, 370);
       createTameesStation(scene, 350, 370);
       createTeaStation(scene, 660, 370);
@@ -192,8 +162,31 @@
     function update(time, delta) {
       customers.forEach((cust, index) => {
         if (!cust || !cust.active) return;
+        
         cust.patience -= delta * 0.005;
-        cust.patienceBar.width = Math.max(0, (cust.patience / 100) * 150);
+        let patiencePercent = (cust.patience / 100);
+        cust.patienceBar.width = Math.max(0, patiencePercent * 100);
+
+        // تغيير لون الشريط وتعب الوجه حسب الصبر
+        if (patiencePercent > 0.6) {
+          cust.patienceBar.fillColor = 0x2ed573; // أخضر
+          if (cust.emotion !== 'happy') {
+            cust.sprite.setTexture(`${cust.type}_happy`);
+            cust.emotion = 'happy';
+          }
+        } else if (patiencePercent > 0.25) {
+          cust.patienceBar.fillColor = 0xffa502; // برتقالي
+          if (cust.emotion !== 'neutral') {
+            cust.sprite.setTexture(`${cust.type}_neutral`);
+            cust.emotion = 'neutral';
+          }
+        } else {
+          cust.patienceBar.fillColor = 0xff4757; // أحمر
+          if (cust.emotion !== 'angry') {
+            cust.sprite.setTexture(`${cust.type}_angry`);
+            cust.emotion = 'angry';
+          }
+        }
 
         if (cust.patience <= 0) custFailed(this, index);
       });
@@ -203,85 +196,55 @@
       uiText.setText(`الرصيد: ${gameState.money} ريال  |  الأخطاء: ${gameState.strikes}/${gameState.maxStrikes}  |  الخبرة: ${gameState.xp}`);
     }
 
-    // --- محطة الفول ---
+    // --- المحطات (مختصرة للتركيز على الزبائن، نفس المنطق السابق) ---
     function createFulStation(scene, x, y) {
       const potImg = scene.add.image(x + 60, y + 80, 'pot_full').setDisplaySize(110, 140).setDepth(5).setInteractive({ useHandCursor: true });
       applyButtonEffect(scene, potImg);
-      
-      const fulStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
       const readyPlateImg = scene.add.image(x + 170, y + 100, 'ful_closed').setDisplaySize(80, 60).setDepth(5).setVisible(false);
-
+      const fulStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
+      
       function updateFulUI() {
-        fulStatusText.setText(`جرة: ${gameState.stations.ful.remainingServings}/${gameState.stations.ful.maxServings} | صحون: ${gameState.stations.ful.readyPlates}`);
+        fulStatusText.setText(`جرة: ${gameState.stations.ful.remainingServings} | صحون: ${gameState.stations.ful.readyPlates}`);
         potImg.setTexture(gameState.stations.ful.remainingServings > 0 ? 'pot_full' : 'pot_empty');
         readyPlateImg.setVisible(gameState.stations.ful.readyPlates > 0);
       }
       updateFulUI();
 
-      // غرف
       const scoopBtn = scene.add.rectangle(x + 130, y + 25, 90, 35, 0xeccc68).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
       applyButtonEffect(scene, scoopBtn);
       const scoopLabel = scene.add.text(x + 150, y + 32, 'غرف', { fontSize: '15px', fontStyle: 'bold', fill: '#000' }).setDepth(6);
 
       scoopBtn.on('pointerdown', () => {
-        const ful = gameState.stations.ful;
-        if (ful.remainingServings > 0 && !ful.isScooping && !ful.isCooking) {
-          ful.isScooping = true;
+        if (gameState.stations.ful.remainingServings > 0 && !gameState.stations.ful.isScooping && !gameState.stations.ful.isCooking) {
+          gameState.stations.ful.isScooping = true;
           scoopLabel.setText('...');
           showProgressBar(scene, x + 125, y + 65, 100, 1500, 0xf1c40f);
-          
           let shake = scene.tweens.add({ targets: potImg, y: potImg.y - 5, duration: 100, yoyo: true, repeat: -1 });
-          
-          scene.time.delayedCall(1500, () => {
-            shake.stop();
-            potImg.y = y + 80;
-            ful.remainingServings--;
-            ful.readyPlates++;
-            ful.isScooping = false;
-            scoopLabel.setText('غرف');
-            updateFulUI();
-          });
+          scene.time.delayedCall(1500, () => { shake.stop(); potImg.y = y + 80; gameState.stations.ful.remainingServings--; gameState.stations.ful.readyPlates++; gameState.stations.ful.isScooping = false; scoopLabel.setText('غرف'); updateFulUI(); });
         }
       });
 
-      // طبخ
       const cookBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff4757).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
       applyButtonEffect(scene, cookBtn);
       const cookLabel = scene.add.text(x + 135, y + 157, 'طبخ (5ر)', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
 
       cookBtn.on('pointerdown', () => {
-        const ful = gameState.stations.ful;
-        if (!ful.isCooking && gameState.money >= gameState.costs.refillFul) {
-          gameState.money -= gameState.costs.refillFul;
-          ful.isCooking = true;
-          cookLabel.setText('يطبخ...');
-          showFloatingText(scene, x + 175, y + 150, '-5 ريال', '#ff4757');
-          showProgressBar(scene, x + 10, y + 65, 100, 3000, 0xe74c3c);
-          updateUI();
-          
+        if (!gameState.stations.ful.isCooking && gameState.money >= gameState.costs.refillFul) {
+          gameState.money -= gameState.costs.refillFul; gameState.stations.ful.isCooking = true; cookLabel.setText('يطبخ...'); showProgressBar(scene, x + 10, y + 65, 100, 3000, 0xe74c3c); updateUI();
           let shake = scene.tweens.add({ targets: potImg, angle: { from: -2, to: 2 }, duration: 150, yoyo: true, repeat: -1 });
-          
-          scene.time.delayedCall(3000, () => {
-            shake.stop();
-            potImg.angle = 0;
-            ful.remainingServings = ful.maxServings;
-            ful.isCooking = false;
-            cookLabel.setText('طبخ (5ر)');
-            updateFulUI();
-          });
+          scene.time.delayedCall(3000, () => { shake.stop(); potImg.angle = 0; gameState.stations.ful.remainingServings = gameState.stations.ful.maxServings; gameState.stations.ful.isCooking = false; cookLabel.setText('طبخ (5ر)'); updateFulUI(); });
         }
       });
     }
 
-    // --- محطة التميس ---
     function createTameesStation(scene, x, y) {
       const ovenImg = scene.add.image(x + 70, y + 80, 'oven_empty').setDisplaySize(120, 140).setDepth(5);
       applyButtonEffect(scene, ovenImg);
       const readyTameesImg = scene.add.image(x + 180, y + 100, 'tamees_plain').setDisplaySize(80, 80).setDepth(5).setVisible(false);
       const tameesStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
-
+      
       function updateTameesUI() {
-        tameesStatusText.setText(`مفرود: ${gameState.stations.tamees.doughReady ? 'جاهز' : 'لا'} | تميس: ${gameState.stations.tamees.readyBread}`);
+        tameesStatusText.setText(`عجين: ${gameState.stations.tamees.doughReady ? '1' : '0'} | تميس: ${gameState.stations.tamees.readyBread}`);
         readyTameesImg.setVisible(gameState.stations.tamees.readyBread > 0);
       }
       updateTameesUI();
@@ -290,45 +253,28 @@
       applyButtonEffect(scene, kneadBtn);
       scene.add.text(x + 150, y + 32, 'عجن', { fontSize: '15px', fontStyle: 'bold', fill: '#000' }).setDepth(6);
 
-      kneadBtn.on('pointerdown', () => {
-        gameState.stations.tamees.doughReady = true;
-        updateTameesUI();
-      });
+      kneadBtn.on('pointerdown', () => { gameState.stations.tamees.doughReady = true; updateTameesUI(); });
 
       const bakeBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff6348).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
       applyButtonEffect(scene, bakeBtn);
       const bakeLabel = scene.add.text(x + 140, y + 157, 'للتنور', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
 
       bakeBtn.on('pointerdown', () => {
-        const tamees = gameState.stations.tamees;
-        if (tamees.doughReady && tamees.inOvenCount < tamees.maxOven) {
-          tamees.doughReady = false;
-          tamees.inOvenCount++;
-          ovenImg.setTexture('oven_baking');
-          bakeLabel.setText('خبز...');
-          showProgressBar(scene, x + 20, y + 65, 100, 2500, 0xe67e22);
-          updateTameesUI();
-
-          scene.time.delayedCall(2500, () => {
-            tamees.inOvenCount--;
-            tamees.readyBread++;
-            if (tamees.inOvenCount === 0) ovenImg.setTexture('oven_empty');
-            bakeLabel.setText('للتنور');
-            updateTameesUI();
-          });
+        if (gameState.stations.tamees.doughReady && gameState.stations.tamees.inOvenCount < gameState.stations.tamees.maxOven) {
+          gameState.stations.tamees.doughReady = false; gameState.stations.tamees.inOvenCount++; ovenImg.setTexture('oven_baking'); bakeLabel.setText('خبز...'); showProgressBar(scene, x + 20, y + 65, 100, 2500, 0xe67e22); updateTameesUI();
+          scene.time.delayedCall(2500, () => { gameState.stations.tamees.inOvenCount--; gameState.stations.tamees.readyBread++; if (gameState.stations.tamees.inOvenCount === 0) ovenImg.setTexture('oven_empty'); bakeLabel.setText('للتنور'); updateTameesUI(); });
         }
       });
     }
 
-    // --- محطة الشاي ---
     function createTeaStation(scene, x, y) {
       const potImg = scene.add.image(x + 60, y + 80, 'teapot_full').setDisplaySize(120, 110).setDepth(5);
       applyButtonEffect(scene, potImg);
       const readyCupImg = scene.add.image(x + 175, y + 95, 'cup_full').setDisplaySize(60, 75).setDepth(5).setVisible(false);
       const teaStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
-
+      
       function updateTeaUI() {
-        teaStatusText.setText(`براد: ${gameState.stations.tea.remainingCups}/${gameState.stations.tea.maxCups} | أكواب: ${gameState.stations.tea.cupsReady}`);
+        teaStatusText.setText(`براد: ${gameState.stations.tea.remainingCups} | أكواب: ${gameState.stations.tea.cupsReady}`);
         potImg.setTexture(gameState.stations.tea.remainingCups > 0 ? 'teapot_full' : 'teapot_empty');
         readyCupImg.setVisible(gameState.stations.tea.cupsReady > 0);
       }
@@ -338,75 +284,61 @@
       applyButtonEffect(scene, pourBtn);
       scene.add.text(x + 155, y + 32, 'صب', { fontSize: '15px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
 
-      pourBtn.on('pointerdown', () => {
-        const tea = gameState.stations.tea;
-        if (tea.remainingCups > 0 && !tea.isBoiling) {
-          tea.remainingCups--;
-          tea.cupsReady++;
-          updateTeaUI();
-        }
-      });
+      pourBtn.on('pointerdown', () => { if (gameState.stations.tea.remainingCups > 0 && !gameState.stations.tea.isBoiling) { gameState.stations.tea.remainingCups--; gameState.stations.tea.cupsReady++; updateTeaUI(); } });
 
       const boilBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff4757).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
       applyButtonEffect(scene, boilBtn);
       const boilLabel = scene.add.text(x + 135, y + 157, 'غليان (4ر)', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
 
       boilBtn.on('pointerdown', () => {
-        const tea = gameState.stations.tea;
-        if (!tea.isBoiling && gameState.money >= gameState.costs.boilTea) {
-          gameState.money -= gameState.costs.boilTea;
-          tea.isBoiling = true;
-          boilLabel.setText('يغلي...');
-          showFloatingText(scene, x + 175, y + 150, '-4 ريال', '#ff4757');
-          showProgressBar(scene, x + 10, y + 65, 100, 2500, 0x3498db);
-          updateUI();
-          
+        if (!gameState.stations.tea.isBoiling && gameState.money >= gameState.costs.boilTea) {
+          gameState.money -= gameState.costs.boilTea; gameState.stations.tea.isBoiling = true; boilLabel.setText('يغلي...'); showProgressBar(scene, x + 10, y + 65, 100, 2500, 0x3498db); updateUI();
           let shake = scene.tweens.add({ targets: potImg, angle: { from: -3, to: 3 }, y: potImg.y - 2, duration: 80, yoyo: true, repeat: -1 });
-
-          scene.time.delayedCall(2500, () => {
-            shake.stop();
-            potImg.angle = 0; potImg.y = y + 80;
-            tea.remainingCups = tea.maxCups;
-            tea.isBoiling = false;
-            boilLabel.setText('غليان (4ر)');
-            updateTeaUI();
-          });
+          scene.time.delayedCall(2500, () => { shake.stop(); potImg.angle = 0; potImg.y = y + 80; gameState.stations.tea.remainingCups = gameState.stations.tea.maxCups; gameState.stations.tea.isBoiling = false; boilLabel.setText('غليان (4ر)'); updateTeaUI(); });
         }
       });
     }
 
-    // --- الزبائن ---
+    // --- الزبائن (تحديث الشخصيات والفقاعات) ---
     function spawnCustomer(scene, slotIndex) {
-      const x = 70 + slotIndex * 300;
-      const y = 80;
+      const x = 180 + slotIndex * 300; 
+      const y = 300; 
+      
+      const charTypes = ['girl', 'man'];
+      const type = charTypes[Math.floor(Math.random() * charTypes.length)];
       const menuOptions = ['ful', 'tamees', 'tea'];
       const chosenItem = menuOptions[Math.floor(Math.random() * menuOptions.length)];
 
-      const box = scene.add.rectangle(x, y, 220, 210, 0x2c3e50, 0.9).setOrigin(0).setDepth(1);
-      const label = scene.add.text(x + 15, y + 15, `زبون #${slotIndex + 1}\nالطلب:\n${getArabicName(chosenItem)}`, {
-        fontSize: '17px', lineSpacing: 6, fontStyle: 'bold', fill: '#ffffff'
-      }).setDepth(2);
+      // رسم شخصية الزبون
+      const sprite = scene.add.image(x, y, `${type}_happy`).setDisplaySize(180, 420).setDepth(1);
+      
+      // دخول متحرك للزبون (Fade in + Slide up)
+      sprite.y = y + 50;
+      sprite.alpha = 0;
+      scene.tweens.add({ targets: sprite, y: y, alpha: 1, duration: 500, ease: 'Back.easeOut' });
 
+      // فقاعة الطلب
+      const bubbleGroup = scene.add.group();
+      const bubbleBg = scene.add.rectangle(x, y - 160, 130, 120, 0xffffff, 0.95).setStrokeStyle(3, 0x000000).setDepth(3);
+      const tail = scene.add.triangle(x, y - 100, 0, -10, 15, 10, -15, 10, 0xffffff).setStrokeStyle(3, 0x000000).setDepth(2.9);
+      
       let orderKey = chosenItem === 'tamees' ? 'tamees_plain' : (chosenItem === 'tea' ? 'cup_full' : 'ful_closed');
-      const orderPreview = scene.add.image(x + 165, y + 45, orderKey).setDisplaySize(45, 45).setDepth(2);
+      const orderPreview = scene.add.image(x, y - 160, orderKey).setDisplaySize(50, 50).setDepth(4);
+      
+      const pBarBg = scene.add.rectangle(x - 50, y - 120, 100, 10, 0x1e272e).setOrigin(0, 0.5).setDepth(4);
+      const patienceBar = scene.add.rectangle(x - 50, y - 120, 100, 10, 0x2ed573).setOrigin(0, 0.5).setDepth(4);
 
-      const barBg = scene.add.rectangle(x + 15, y + 95, 150, 12, 0x1e272e).setOrigin(0).setDepth(2);
-      const patienceBar = scene.add.rectangle(x + 15, y + 95, 150, 12, 0x2ed573).setOrigin(0).setDepth(2);
+      // زر التسليم المخفي فوق الزبون والفقاعة لتسهيل النقر
+      const serveHitbox = scene.add.rectangle(x, y - 80, 160, 280, 0x000000, 0).setInteractive({ useHandCursor: true }).setDepth(10);
 
-      const serveBtn = scene.add.rectangle(x + 15, y + 130, 150, 40, 0x70a1ff).setOrigin(0).setDepth(2).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, serveBtn);
-      const serveText = scene.add.text(x + 35, y + 140, 'تسليم الطلب', { fontSize: '15px', fontStyle: 'bold', fill: '#2f3542' }).setDepth(3);
+      bubbleGroup.addMultiple([bubbleBg, tail, orderPreview, pBarBg, patienceBar, serveHitbox]);
 
-      customers[slotIndex] = { active: true, order: chosenItem, patience: 100, box, label, orderPreview, barBg, patienceBar, serveBtn, serveText };
+      customers[slotIndex] = { 
+        active: true, type, sprite, emotion: 'happy', order: chosenItem, patience: 100, 
+        bubbleGroup, patienceBar, serveHitbox 
+      };
 
-      serveBtn.on('pointerdown', () => attemptDelivery(scene, slotIndex));
-    }
-
-    function getArabicName(item) {
-      if (item === 'ful') return 'صحن فول بزيت';
-      if (item === 'tamees') return 'رغيف تميس';
-      if (item === 'tea') return 'كوب شاي';
-      return item;
+      serveHitbox.on('pointerdown', () => attemptDelivery(scene, slotIndex));
     }
 
     function attemptDelivery(scene, slotIndex) {
@@ -417,17 +349,11 @@
       let earned = 0;
 
       if (cust.order === 'ful' && gameState.stations.ful.readyPlates > 0) {
-        gameState.stations.ful.readyPlates--;
-        earned = gameState.prices.ful.base + gameState.prices.ful.olive_oil;
-        isSuccess = true;
+        gameState.stations.ful.readyPlates--; earned = gameState.prices.ful.base + gameState.prices.ful.olive_oil; isSuccess = true;
       } else if (cust.order === 'tamees' && gameState.stations.tamees.readyBread > 0) {
-        gameState.stations.tamees.readyBread--;
-        earned = gameState.prices.tamees.base;
-        isSuccess = true;
+        gameState.stations.tamees.readyBread--; earned = gameState.prices.tamees.base; isSuccess = true;
       } else if (cust.order === 'tea' && gameState.stations.tea.cupsReady > 0) {
-        gameState.stations.tea.cupsReady--;
-        earned = gameState.prices.tea.base;
-        isSuccess = true;
+        gameState.stations.tea.cupsReady--; earned = gameState.prices.tea.base; isSuccess = true;
       }
 
       if (isSuccess) {
@@ -435,43 +361,51 @@
         gameState.money += Math.max(1, payout);
         gameState.xp += 10;
         updateUI();
-        showFloatingText(scene, cust.box.x + 110, cust.box.y + 100, `+${Math.max(1, payout)} ريال`, '#2ecc71');
         
-        clearCustomer(slotIndex);
-        scene.time.delayedCall(1000, () => spawnCustomer(scene, slotIndex));
+        // تأثير الفرح للزبون
+        cust.sprite.setTexture(`${cust.type}_happy`);
+        scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y - 30, duration: 200, yoyo: true, repeat: 1 });
+        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 100, `+${Math.max(1, payout)} ريال`, '#2ecc71');
+        
+        clearCustomer(scene, slotIndex);
+        scene.time.delayedCall(1200, () => spawnCustomer(scene, slotIndex));
       } else {
         cust.patience = Math.max(0, cust.patience - 25);
         scene.cameras.main.shake(150, 0.01);
-        showFloatingText(scene, cust.box.x + 110, cust.box.y + 100, 'طلب خاطئ!', '#ff4757');
+        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 100, 'طلب خاطئ!', '#ff4757');
       }
     }
 
     function custFailed(scene, slotIndex) {
-      clearCustomer(slotIndex);
+      const cust = customers[slotIndex];
+      cust.sprite.setTexture(`${cust.type}_angry`); // غضب إجباري
+      
+      // أنيميشن المغادرة غاضباً (سقوط لأسفل)
+      scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y + 100, alpha: 0, duration: 600, ease: 'Power2' });
+      
+      clearCustomer(scene, slotIndex, true); // True = اترك الـ Sprite لينهي الأنيميشن
+      
       gameState.strikes++;
       updateUI();
-      
-      scene.cameras.main.flash(300, 255, 0, 0); // ومضة حمراء
+      scene.cameras.main.flash(300, 255, 0, 0);
 
       if (gameState.strikes >= gameState.maxStrikes) {
         scene.cameras.main.fade(1000, 0, 0, 0);
         scene.time.delayedCall(1200, () => location.reload());
       } else {
-        scene.time.delayedCall(1200, () => spawnCustomer(scene, slotIndex));
+        scene.time.delayedCall(1500, () => spawnCustomer(scene, slotIndex));
       }
     }
 
-    function clearCustomer(slotIndex) {
+    function clearCustomer(scene, slotIndex, keepSprite = false) {
       const cust = customers[slotIndex];
       if (!cust) return;
       cust.active = false;
-      cust.box.destroy();
-      cust.label.destroy();
-      cust.orderPreview.destroy();
-      cust.barBg.destroy();
-      cust.patienceBar.destroy();
-      cust.serveBtn.destroy();
-      cust.serveText.destroy();
+      cust.bubbleGroup.destroy(true); // يدمر كل محتويات الفقاعة
+      
+      if (!keepSprite) {
+        scene.tweens.add({ targets: cust.sprite, alpha: 0, duration: 300, onComplete: () => cust.sprite.destroy() });
+      }
     }
   </script>
 </body>
