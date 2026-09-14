@@ -70,10 +70,11 @@
       strikes: 0,
       maxStrikes: 3,
       xp: 0,
+      selectedCustomerIndex: 0,
       stations: {
-        ful: { readyPlates: 0, remainingServings: 5, maxServings: 5, isCooking: false, isScooping: false },
-        tamees: { doughReady: false, inOvenCount: 0, readyBread: 0, maxOven: 2 },
-        tea: { cupsReady: 0, remainingCups: 4, maxCups: 4, isBoiling: false }
+        ful: { servings: 5, maxServings: 5, isCooking: false, plateState: 'none' },
+        tamees: { doughState: 'none', ovenState: 'empty', readyBread: false },
+        tea: { cups: 4, maxCups: 4, isBoiling: false, cupState: 'none' }
       },
       costs: { refillFul: 5, boilTea: 4 },
       prices: {
@@ -85,6 +86,9 @@
 
     let customers = [];
     let uiText;
+    let fulViews = {};
+    let tameesViews = {};
+    let teaViews = {};
 
     function preload() {
       // الخلفية والكاونتر
@@ -92,22 +96,26 @@
       this.load.image('counter_wood', '1789307959432.png');
 
       // صور الفول
-      this.load.image('pot_full', 'Fuwl_sprites_14/sprite-2-1_3.png');
-      this.load.image('pot_empty', 'Fuwl_sprites_14/sprite-3-1_2.png');
+      this.load.image('cups_stack', 'Fuwl_sprites_14/sprite-1-3.png');
+      this.load.image('pot_full', 'Fuwl_sprites_14/sprite-2-1.png');
+      this.load.image('pot_empty', 'Fuwl_sprites_14/sprite-3-1.png');
       this.load.image('ful_closed', 'Fuwl_sprites_14/sprite-3-2.png');
       this.load.image('ful_open', 'Fuwl_sprites_14/sprite-3-3.png');
 
       // صور التميس
-      this.load.image('tamees_plain', 'Tamees_sprites_9/sprite-2-3_2.png');
-      this.load.image('oven_empty', 'Tamees_sprites_9/sprite-5-3_2.png');
-      this.load.image('oven_baking', 'Tamees_sprites_9/sprite-5-4_2.png');
+      this.load.image('dough_ball', 'Tamees_sprites_9/sprite-2-1.png');
+      this.load.image('dough_box', 'Tamees_sprites_9/sprite-2-2.png');
+      this.load.image('tamees_plain', 'Tamees_sprites_9/sprite-2-3.png');
+      this.load.image('dough_flat', 'Tamees_sprites_9/sprite-3-1.png');
+      this.load.image('oven_empty', 'Tamees_sprites_9/sprite-5-3.png');
+      this.load.image('oven_baking', 'Tamees_sprites_9/sprite-5-4.png');
 
-      // صور الشاي
+      // صور الشاي والزبائن
       this.load.image('teapot_full', 'Tea_sprites_9/sprite-2-1.png');
       this.load.image('teapot_empty', 'Tea_sprites_9/sprite-2-2.png');
+      this.load.image('cup_empty', 'Tea_sprites_9/sprite-2-4.png');
       this.load.image('cup_full', 'Tea_sprites_9/sprite-2-5.png');
 
-      // صور الزبائن (تم وضعها في مجلد الشاي بناءً على طلبك)
       this.load.image('girl_happy', 'Tea_sprites_9/1789318266082.png');
       this.load.image('girl_neutral', 'Tea_sprites_9/1789318242744.png');
       this.load.image('girl_angry', 'Tea_sprites_9/1789318194567.png');
@@ -116,47 +124,71 @@
       this.load.image('man_angry', 'Tea_sprites_9/1789318077271.png');
     }
 
-    // --- دوال المؤثرات الحركية (Juice Helpers) ---
-    function applyButtonEffect(scene, target) {
-      target.on('pointerdown', () => {
-        scene.tweens.add({ targets: target, scaleX: target.scaleX * 0.9, scaleY: target.scaleY * 0.9, duration: 60, yoyo: true });
+    function applySquash(scene, target) {
+      scene.tweens.add({
+        targets: target,
+        scaleX: target.scaleX * 0.9,
+        scaleY: target.scaleY * 0.9,
+        duration: 70,
+        yoyo: true
       });
     }
 
     function showFloatingText(scene, x, y, msg, color) {
       let t = scene.add.text(x, y, msg, {
-        fontSize: '24px', fontStyle: 'bold', fill: color, stroke: '#000', strokeThickness: 4
-      }).setDepth(20).setOrigin(0.5);
+        fontSize: '22px', fontStyle: 'bold', fill: color, stroke: '#000', strokeThickness: 4
+      }).setDepth(30).setOrigin(0.5);
       
-      scene.tweens.add({ targets: t, y: y - 60, alpha: 0, duration: 1200, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+      scene.tweens.add({
+        targets: t,
+        y: y - 50,
+        alpha: 0,
+        duration: 1100,
+        ease: 'Cubic.easeOut',
+        onComplete: () => t.destroy()
+      });
     }
 
-    function showProgressBar(scene, x, y, width, duration, color) {
-      let bg = scene.add.rectangle(x, y, width, 12, 0x000000, 0.8).setOrigin(0).setDepth(15);
-      let bar = scene.add.rectangle(x + 2, y + 2, 0, 8, color).setOrigin(0).setDepth(16);
+    function showProgressBar(scene, x, y, width, duration, color, callback) {
+      let bg = scene.add.rectangle(x, y, width, 10, 0x000000, 0.85).setOrigin(0).setDepth(20);
+      let bar = scene.add.rectangle(x + 2, y + 2, 0, 6, color).setOrigin(0).setDepth(21);
       
-      scene.tweens.add({ targets: bar, width: width - 4, duration: duration, onComplete: () => { bg.destroy(); bar.destroy(); } });
+      scene.tweens.add({
+        targets: bar,
+        width: width - 4,
+        duration: duration,
+        onComplete: () => {
+          bg.destroy();
+          bar.destroy();
+          if (callback) callback();
+        }
+      });
     }
 
     function create() {
       const scene = this;
       window.addEventListener('resize', () => scene.scale.refresh());
 
+      // 1. الخلفية
       scene.add.image(480, 200, 'bg_restaurant').setDisplaySize(960, 420).setDepth(0);
 
-      // رسم الزبائن
+      // 2. الزبائن خلف الكاونتر
       for (let i = 0; i < 3; i++) spawnCustomer(scene, i);
 
+      // 3. الكاونتر الرخامي الخشبي
       scene.add.image(480, 475, 'counter_wood').setDisplaySize(960, 260).setDepth(2);
 
-      // شريط المعلومات
+      // 4. الشريط العلوي
       scene.add.rectangle(480, 25, 960, 50, 0x1e272e, 0.85).setDepth(10);
       uiText = scene.add.text(20, 14, '', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', fontStyle: 'bold', fill: '#ffffff' }).setDepth(11);
       updateUI();
 
-      createFulStation(scene, 50, 370);
-      createTameesStation(scene, 350, 370);
-      createTeaStation(scene, 660, 370);
+      // 5. بناء المحطات التفاعلية بالكامل
+      setupFulStation(scene);
+      setupTameesStation(scene);
+      setupTeaStation(scene);
+
+      updateCustomerSelectionVisuals();
     }
 
     function update(time, delta) {
@@ -164,24 +196,23 @@
         if (!cust || !cust.active) return;
         
         cust.patience -= delta * 0.005;
-        let patiencePercent = (cust.patience / 100);
-        cust.patienceBar.width = Math.max(0, patiencePercent * 100);
+        let p = (cust.patience / 100);
+        cust.patienceBar.width = Math.max(0, p * 100);
 
-        // تغيير لون الشريط وتعب الوجه حسب الصبر
-        if (patiencePercent > 0.6) {
-          cust.patienceBar.fillColor = 0x2ed573; // أخضر
+        if (p > 0.6) {
+          cust.patienceBar.fillColor = 0x2ed573;
           if (cust.emotion !== 'happy') {
             cust.sprite.setTexture(`${cust.type}_happy`);
             cust.emotion = 'happy';
           }
-        } else if (patiencePercent > 0.25) {
-          cust.patienceBar.fillColor = 0xffa502; // برتقالي
+        } else if (p > 0.25) {
+          cust.patienceBar.fillColor = 0xffa502;
           if (cust.emotion !== 'neutral') {
             cust.sprite.setTexture(`${cust.type}_neutral`);
             cust.emotion = 'neutral';
           }
         } else {
-          cust.patienceBar.fillColor = 0xff4757; // أحمر
+          cust.patienceBar.fillColor = 0xff4757;
           if (cust.emotion !== 'angry') {
             cust.sprite.setTexture(`${cust.type}_angry`);
             cust.emotion = 'angry';
@@ -196,195 +227,364 @@
       uiText.setText(`الرصيد: ${gameState.money} ريال  |  الأخطاء: ${gameState.strikes}/${gameState.maxStrikes}  |  الخبرة: ${gameState.xp}`);
     }
 
-    // --- المحطات (مختصرة للتركيز على الزبائن، نفس المنطق السابق) ---
-    function createFulStation(scene, x, y) {
-      const potImg = scene.add.image(x + 60, y + 80, 'pot_full').setDisplaySize(110, 140).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, potImg);
-      const readyPlateImg = scene.add.image(x + 170, y + 100, 'ful_closed').setDisplaySize(80, 60).setDepth(5).setVisible(false);
-      const fulStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
-      
-      function updateFulUI() {
-        fulStatusText.setText(`جرة: ${gameState.stations.ful.remainingServings} | صحون: ${gameState.stations.ful.readyPlates}`);
-        potImg.setTexture(gameState.stations.ful.remainingServings > 0 ? 'pot_full' : 'pot_empty');
-        readyPlateImg.setVisible(gameState.stations.ful.readyPlates > 0);
-      }
-      updateFulUI();
+    // ==========================================
+    // محطة الفول
+    // ==========================================
+    function setupFulStation(scene) {
+      // الجرة (زر الطبخ وإعادة التعبئة)
+      fulViews.pot = scene.add.image(85, 450, 'pot_full').setDisplaySize(110, 135).setDepth(5).setInteractive({ useHandCursor: true });
+      fulViews.label = scene.add.text(85, 525, 'الجرة: 5/5', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
 
-      const scoopBtn = scene.add.rectangle(x + 130, y + 25, 90, 35, 0xeccc68).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, scoopBtn);
-      const scoopLabel = scene.add.text(x + 150, y + 32, 'غرف', { fontSize: '15px', fontStyle: 'bold', fill: '#000' }).setDepth(6);
+      // رصة العلب الفارغة
+      fulViews.stack = scene.add.image(180, 480, 'cups_stack').setDisplaySize(65, 80).setDepth(5).setInteractive({ useHandCursor: true });
 
-      scoopBtn.on('pointerdown', () => {
-        if (gameState.stations.ful.remainingServings > 0 && !gameState.stations.ful.isScooping && !gameState.stations.ful.isCooking) {
-          gameState.stations.ful.isScooping = true;
-          scoopLabel.setText('...');
-          showProgressBar(scene, x + 125, y + 65, 100, 1500, 0xf1c40f);
-          let shake = scene.tweens.add({ targets: potImg, y: potImg.y - 5, duration: 100, yoyo: true, repeat: -1 });
-          scene.time.delayedCall(1500, () => { shake.stop(); potImg.y = y + 80; gameState.stations.ful.remainingServings--; gameState.stations.ful.readyPlates++; gameState.stations.ful.isScooping = false; scoopLabel.setText('غرف'); updateFulUI(); });
+      // صحن التجهيز
+      fulViews.plate = scene.add.image(245, 475, 'cups_stack').setDisplaySize(55, 50).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+
+      // ضغط الجرة -> إعادة الطبخ
+      fulViews.pot.on('pointerdown', () => {
+        applySquash(scene, fulViews.pot);
+        const ful = gameState.stations.ful;
+        if (!ful.isCooking && ful.servings < ful.maxServings) {
+          if (gameState.money >= gameState.costs.refillFul) {
+            gameState.money -= gameState.costs.refillFul;
+            ful.isCooking = true;
+            updateUI();
+            showFloatingText(scene, 85, 410, '-5 ريال', '#ff4757');
+            let shake = scene.tweens.add({ targets: fulViews.pot, angle: { from: -2, to: 2 }, duration: 100, yoyo: true, repeat: -1 });
+            
+            showProgressBar(scene, 40, 390, 90, 3000, 0xe74c3c, () => {
+              shake.stop();
+              fulViews.pot.angle = 0;
+              ful.servings = ful.maxServings;
+              ful.isCooking = false;
+              updateFulVisuals();
+            });
+          } else {
+            showFloatingText(scene, 85, 410, 'لا يوجد رصيد!', '#ff4757');
+          }
         }
       });
 
-      const cookBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff4757).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, cookBtn);
-      const cookLabel = scene.add.text(x + 135, y + 157, 'طبخ (5ر)', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
-
-      cookBtn.on('pointerdown', () => {
-        if (!gameState.stations.ful.isCooking && gameState.money >= gameState.costs.refillFul) {
-          gameState.money -= gameState.costs.refillFul; gameState.stations.ful.isCooking = true; cookLabel.setText('يطبخ...'); showProgressBar(scene, x + 10, y + 65, 100, 3000, 0xe74c3c); updateUI();
-          let shake = scene.tweens.add({ targets: potImg, angle: { from: -2, to: 2 }, duration: 150, yoyo: true, repeat: -1 });
-          scene.time.delayedCall(3000, () => { shake.stop(); potImg.angle = 0; gameState.stations.ful.remainingServings = gameState.stations.ful.maxServings; gameState.stations.ful.isCooking = false; cookLabel.setText('طبخ (5ر)'); updateFulUI(); });
+      // ضغط رصة العلب -> تجهيز علبة فارغة
+      fulViews.stack.on('pointerdown', () => {
+        applySquash(scene, fulViews.stack);
+        if (gameState.stations.ful.plateState === 'none') {
+          gameState.stations.ful.plateState = 'empty';
+          updateFulVisuals();
         }
       });
+
+      // ضغط العلبة -> غرف أو تسليم
+      fulViews.plate.on('pointerdown', () => {
+        applySquash(scene, fulViews.plate);
+        const ful = gameState.stations.ful;
+        if (ful.plateState === 'empty') {
+          if (ful.servings > 0 && !ful.isCooking) {
+            ful.plateState = 'scooping';
+            let shake = scene.tweens.add({ targets: fulViews.pot, y: fulViews.pot.y - 4, duration: 80, yoyo: true, repeat: -1 });
+            showProgressBar(scene, 205, 430, 80, 1200, 0xf1c40f, () => {
+              shake.stop();
+              fulViews.pot.y = 450;
+              ful.servings--;
+              ful.plateState = 'ready';
+              updateFulVisuals();
+            });
+          }
+        } else if (ful.plateState === 'ready') {
+          deliverItem(scene, 'ful', () => {
+            ful.plateState = 'none';
+            updateFulVisuals();
+          });
+        }
+      });
+
+      updateFulVisuals();
     }
 
-    function createTameesStation(scene, x, y) {
-      const ovenImg = scene.add.image(x + 70, y + 80, 'oven_empty').setDisplaySize(120, 140).setDepth(5);
-      applyButtonEffect(scene, ovenImg);
-      const readyTameesImg = scene.add.image(x + 180, y + 100, 'tamees_plain').setDisplaySize(80, 80).setDepth(5).setVisible(false);
-      const tameesStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
-      
-      function updateTameesUI() {
-        tameesStatusText.setText(`عجين: ${gameState.stations.tamees.doughReady ? '1' : '0'} | تميس: ${gameState.stations.tamees.readyBread}`);
-        readyTameesImg.setVisible(gameState.stations.tamees.readyBread > 0);
+    function updateFulVisuals() {
+      const ful = gameState.stations.ful;
+      fulViews.pot.setTexture(ful.servings > 0 ? 'pot_full' : 'pot_empty');
+      fulViews.label.setText(`الجرة: ${ful.servings}/${ful.maxServings}`);
+
+      if (ful.plateState === 'none') {
+        fulViews.plate.setVisible(false);
+      } else if (ful.plateState === 'empty' || ful.plateState === 'scooping') {
+        fulViews.plate.setVisible(true).setTexture('cups_stack').setDisplaySize(50, 45);
+      } else if (ful.plateState === 'ready') {
+        fulViews.plate.setVisible(true).setTexture('ful_closed').setDisplaySize(75, 55);
       }
-      updateTameesUI();
-
-      const kneadBtn = scene.add.rectangle(x + 130, y + 25, 90, 35, 0xffa502).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, kneadBtn);
-      scene.add.text(x + 150, y + 32, 'عجن', { fontSize: '15px', fontStyle: 'bold', fill: '#000' }).setDepth(6);
-
-      kneadBtn.on('pointerdown', () => { gameState.stations.tamees.doughReady = true; updateTameesUI(); });
-
-      const bakeBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff6348).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, bakeBtn);
-      const bakeLabel = scene.add.text(x + 140, y + 157, 'للتنور', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
-
-      bakeBtn.on('pointerdown', () => {
-        if (gameState.stations.tamees.doughReady && gameState.stations.tamees.inOvenCount < gameState.stations.tamees.maxOven) {
-          gameState.stations.tamees.doughReady = false; gameState.stations.tamees.inOvenCount++; ovenImg.setTexture('oven_baking'); bakeLabel.setText('خبز...'); showProgressBar(scene, x + 20, y + 65, 100, 2500, 0xe67e22); updateTameesUI();
-          scene.time.delayedCall(2500, () => { gameState.stations.tamees.inOvenCount--; gameState.stations.tamees.readyBread++; if (gameState.stations.tamees.inOvenCount === 0) ovenImg.setTexture('oven_empty'); bakeLabel.setText('للتنور'); updateTameesUI(); });
-        }
-      });
     }
 
-    function createTeaStation(scene, x, y) {
-      const potImg = scene.add.image(x + 60, y + 80, 'teapot_full').setDisplaySize(120, 110).setDepth(5);
-      applyButtonEffect(scene, potImg);
-      const readyCupImg = scene.add.image(x + 175, y + 95, 'cup_full').setDisplaySize(60, 75).setDepth(5).setVisible(false);
-      const teaStatusText = scene.add.text(x, y - 10, '', { fontSize: '15px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(6);
-      
-      function updateTeaUI() {
-        teaStatusText.setText(`براد: ${gameState.stations.tea.remainingCups} | أكواب: ${gameState.stations.tea.cupsReady}`);
-        potImg.setTexture(gameState.stations.tea.remainingCups > 0 ? 'teapot_full' : 'teapot_empty');
-        readyCupImg.setVisible(gameState.stations.tea.cupsReady > 0);
-      }
-      updateTeaUI();
+    // ==========================================
+    // محطة التميس
+    // ==========================================
+    function setupTameesStation(scene) {
+      // صندوق العجين
+      tameesViews.box = scene.add.image(360, 480, 'dough_box').setDisplaySize(85, 65).setDepth(5).setInteractive({ useHandCursor: true });
 
-      const pourBtn = scene.add.rectangle(x + 130, y + 25, 90, 35, 0x1e90ff).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, pourBtn);
-      scene.add.text(x + 155, y + 32, 'صب', { fontSize: '15px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
+      // مساحة عجن وفرد العجين
+      tameesViews.prep = scene.add.image(440, 480, 'dough_ball').setDisplaySize(60, 50).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
 
-      pourBtn.on('pointerdown', () => { if (gameState.stations.tea.remainingCups > 0 && !gameState.stations.tea.isBoiling) { gameState.stations.tea.remainingCups--; gameState.stations.tea.cupsReady++; updateTeaUI(); } });
+      // التنور
+      tameesViews.oven = scene.add.image(535, 445, 'oven_empty').setDisplaySize(115, 135).setDepth(5).setInteractive({ useHandCursor: true });
 
-      const boilBtn = scene.add.rectangle(x + 130, y + 150, 90, 35, 0xff4757).setOrigin(0).setDepth(5).setInteractive({ useHandCursor: true });
-      applyButtonEffect(scene, boilBtn);
-      const boilLabel = scene.add.text(x + 135, y + 157, 'غليان (4ر)', { fontSize: '14px', fontStyle: 'bold', fill: '#fff' }).setDepth(6);
+      // التميس المستوي الجاهز للتسليم
+      tameesViews.readyBread = scene.add.image(615, 480, 'tamees_plain').setDisplaySize(75, 75).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
 
-      boilBtn.on('pointerdown', () => {
-        if (!gameState.stations.tea.isBoiling && gameState.money >= gameState.costs.boilTea) {
-          gameState.money -= gameState.costs.boilTea; gameState.stations.tea.isBoiling = true; boilLabel.setText('يغلي...'); showProgressBar(scene, x + 10, y + 65, 100, 2500, 0x3498db); updateUI();
-          let shake = scene.tweens.add({ targets: potImg, angle: { from: -3, to: 3 }, y: potImg.y - 2, duration: 80, yoyo: true, repeat: -1 });
-          scene.time.delayedCall(2500, () => { shake.stop(); potImg.angle = 0; potImg.y = y + 80; gameState.stations.tea.remainingCups = gameState.stations.tea.maxCups; gameState.stations.tea.isBoiling = false; boilLabel.setText('غليان (4ر)'); updateTeaUI(); });
+      // ضغط صندوق العجين -> وضع كرة عجين
+      tameesViews.box.on('pointerdown', () => {
+        applySquash(scene, tameesViews.box);
+        if (gameState.stations.tamees.doughState === 'none') {
+          gameState.stations.tamees.doughState = 'ball';
+          updateTameesVisuals();
         }
       });
+
+      // ضغط العجين -> فرد أو إدخال للتنور
+      tameesViews.prep.on('pointerdown', () => {
+        applySquash(scene, tameesViews.prep);
+        const t = gameState.stations.tamees;
+        if (t.doughState === 'ball') {
+          t.doughState = 'flat';
+          updateTameesVisuals();
+        } else if (t.doughState === 'flat') {
+          if (t.ovenState === 'empty') {
+            t.doughState = 'none';
+            t.ovenState = 'baking';
+            updateTameesVisuals();
+            showProgressBar(scene, 490, 390, 90, 2500, 0xe67e22, () => {
+              t.ovenState = 'ready';
+              updateTameesVisuals();
+            });
+          }
+        }
+      });
+
+      // ضغط التنور -> سحب التميس إذا نضج
+      tameesViews.oven.on('pointerdown', () => {
+        applySquash(scene, tameesViews.oven);
+        const t = gameState.stations.tamees;
+        if (t.ovenState === 'ready' && !t.readyBread) {
+          t.ovenState = 'empty';
+          t.readyBread = true;
+          updateTameesVisuals();
+        }
+      });
+
+      // ضغط التميس المستوي -> تسليم
+      tameesViews.readyBread.on('pointerdown', () => {
+        applySquash(scene, tameesViews.readyBread);
+        deliverItem(scene, 'tamees', () => {
+          gameState.stations.tamees.readyBread = false;
+          updateTameesVisuals();
+        });
+      });
+
+      updateTameesVisuals();
     }
 
-    // --- الزبائن (تحديث الشخصيات والفقاعات) ---
+    function updateTameesVisuals() {
+      const t = gameState.stations.tamees;
+
+      // العجين المجهز
+      if (t.doughState === 'none') {
+        tameesViews.prep.setVisible(false);
+      } else if (t.doughState === 'ball') {
+        tameesViews.prep.setVisible(true).setTexture('dough_ball').setDisplaySize(55, 45);
+      } else if (t.doughState === 'flat') {
+        tameesViews.prep.setVisible(true).setTexture('dough_flat').setDisplaySize(70, 45);
+      }
+
+      // التنور
+      if (t.ovenState === 'baking') {
+        tameesViews.oven.setTexture('oven_baking');
+      } else {
+        tameesViews.oven.setTexture('oven_empty');
+      }
+
+      // التميس الجاهز
+      tameesViews.readyBread.setVisible(t.readyBread);
+    }
+
+    // ==========================================
+    // محطة الشاي
+    // ==========================================
+    function setupTeaStation(scene) {
+      // براد الشاي
+      teaViews.pot = scene.add.image(725, 455, 'teapot_full').setDisplaySize(115, 100).setDepth(5).setInteractive({ useHandCursor: true });
+      teaViews.label = scene.add.text(725, 525, 'براد: 4/4', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
+
+      // رصة الأكواب
+      teaViews.stack = scene.add.image(815, 480, 'cup_empty').setDisplaySize(55, 70).setDepth(5).setInteractive({ useHandCursor: true });
+
+      // كوب الشاي للصب والتسليم
+      teaViews.cup = scene.add.image(880, 475, 'cup_empty').setDisplaySize(55, 70).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+
+      // ضغط البراد -> إعادة غليان
+      teaViews.pot.on('pointerdown', () => {
+        applySquash(scene, teaViews.pot);
+        const tea = gameState.stations.tea;
+        if (!tea.isBoiling && tea.cups < tea.maxCups) {
+          if (gameState.money >= gameState.costs.boilTea) {
+            gameState.money -= gameState.costs.boilTea;
+            tea.isBoiling = true;
+            updateUI();
+            showFloatingText(scene, 725, 410, '-4 ريال', '#ff4757');
+            let shake = scene.tweens.add({ targets: teaViews.pot, angle: { from: -3, to: 3 }, duration: 80, yoyo: true, repeat: -1 });
+
+            showProgressBar(scene, 680, 395, 90, 2500, 0x3498db, () => {
+              shake.stop();
+              teaViews.pot.angle = 0;
+              tea.cups = tea.maxCups;
+              tea.isBoiling = false;
+              updateTeaVisuals();
+            });
+          } else {
+            showFloatingText(scene, 725, 410, 'لا يوجد رصيد!', '#ff4757');
+          }
+        }
+      });
+
+      // ضغط رصة الأكواب -> وضع كوب فارغ
+      teaViews.stack.on('pointerdown', () => {
+        applySquash(scene, teaViews.stack);
+        if (gameState.stations.tea.cupState === 'none') {
+          gameState.stations.tea.cupState = 'empty';
+          updateTeaVisuals();
+        }
+      });
+
+      // ضغط الكوب -> صب أو تسليم
+      teaViews.cup.on('pointerdown', () => {
+        applySquash(scene, teaViews.cup);
+        const tea = gameState.stations.tea;
+        if (tea.cupState === 'empty') {
+          if (tea.cups > 0 && !tea.isBoiling) {
+            tea.cupState = 'pouring';
+            let tilt = scene.tweens.add({ targets: teaViews.pot, angle: -15, duration: 200, yoyo: true });
+            showProgressBar(scene, 840, 430, 75, 1000, 0x16a085, () => {
+              tea.cups--;
+              tea.cupState = 'ready';
+              updateTeaVisuals();
+            });
+          }
+        } else if (tea.cupState === 'ready') {
+          deliverItem(scene, 'tea', () => {
+            tea.cupState = 'none';
+            updateTeaVisuals();
+          });
+        }
+      });
+
+      updateTeaVisuals();
+    }
+
+    function updateTeaVisuals() {
+      const tea = gameState.stations.tea;
+      teaViews.pot.setTexture(tea.cups > 0 ? 'teapot_full' : 'teapot_empty');
+      teaViews.label.setText(`براد: ${tea.cups}/${tea.maxCups}`);
+
+      if (tea.cupState === 'none') {
+        teaViews.cup.setVisible(false);
+      } else if (tea.cupState === 'empty' || tea.cupState === 'pouring') {
+        teaViews.cup.setVisible(true).setTexture('cup_empty');
+      } else if (tea.cupState === 'ready') {
+        teaViews.cup.setVisible(true).setTexture('cup_full');
+      }
+    }
+
+    // ==========================================
+    // إدارة الزبائن وتحديد الخدمة والتسليم
+    // ==========================================
     function spawnCustomer(scene, slotIndex) {
-      const x = 180 + slotIndex * 300; 
-      const y = 300; 
-      
+      const x = 180 + slotIndex * 300;
+      const y = 300;
       const charTypes = ['girl', 'man'];
       const type = charTypes[Math.floor(Math.random() * charTypes.length)];
       const menuOptions = ['ful', 'tamees', 'tea'];
       const chosenItem = menuOptions[Math.floor(Math.random() * menuOptions.length)];
 
-      // رسم شخصية الزبون
-      const sprite = scene.add.image(x, y, `${type}_happy`).setDisplaySize(180, 420).setDepth(1);
-      
-      // دخول متحرك للزبون (Fade in + Slide up)
-      sprite.y = y + 50;
-      sprite.alpha = 0;
-      scene.tweens.add({ targets: sprite, y: y, alpha: 1, duration: 500, ease: 'Back.easeOut' });
+      const sprite = scene.add.image(x, y + 40, `${type}_happy`).setDisplaySize(175, 410).setDepth(1);
+      scene.tweens.add({ targets: sprite, y: y, alpha: 1, duration: 400, ease: 'Back.easeOut' });
 
       // فقاعة الطلب
-      const bubbleGroup = scene.add.group();
-      const bubbleBg = scene.add.rectangle(x, y - 160, 130, 120, 0xffffff, 0.95).setStrokeStyle(3, 0x000000).setDepth(3);
-      const tail = scene.add.triangle(x, y - 100, 0, -10, 15, 10, -15, 10, 0xffffff).setStrokeStyle(3, 0x000000).setDepth(2.9);
-      
+      const bubbleBg = scene.add.rectangle(x, y - 160, 120, 110, 0xffffff, 0.95).setStrokeStyle(3, 0x000000).setDepth(3);
+      const tail = scene.add.triangle(x, y - 105, 0, -8, 12, 8, -12, 8, 0xffffff).setStrokeStyle(3, 0x000000).setDepth(2.9);
+
       let orderKey = chosenItem === 'tamees' ? 'tamees_plain' : (chosenItem === 'tea' ? 'cup_full' : 'ful_closed');
-      const orderPreview = scene.add.image(x, y - 160, orderKey).setDisplaySize(50, 50).setDepth(4);
-      
-      const pBarBg = scene.add.rectangle(x - 50, y - 120, 100, 10, 0x1e272e).setOrigin(0, 0.5).setDepth(4);
-      const patienceBar = scene.add.rectangle(x - 50, y - 120, 100, 10, 0x2ed573).setOrigin(0, 0.5).setDepth(4);
+      const orderPreview = scene.add.image(x, y - 160, orderKey).setDisplaySize(48, 48).setDepth(4);
 
-      // زر التسليم المخفي فوق الزبون والفقاعة لتسهيل النقر
-      const serveHitbox = scene.add.rectangle(x, y - 80, 160, 280, 0x000000, 0).setInteractive({ useHandCursor: true }).setDepth(10);
+      const pBarBg = scene.add.rectangle(x - 45, y - 120, 90, 8, 0x1e272e).setOrigin(0, 0.5).setDepth(4);
+      const patienceBar = scene.add.rectangle(x - 45, y - 120, 90, 8, 0x2ed573).setOrigin(0, 0.5).setDepth(4);
 
-      bubbleGroup.addMultiple([bubbleBg, tail, orderPreview, pBarBg, patienceBar, serveHitbox]);
+      // مؤشر التحديد
+      const selectIndicator = scene.add.triangle(x, y - 225, 0, 15, -12, 0, 12, 0, 0xf1c40f).setDepth(10).setVisible(false);
 
-      customers[slotIndex] = { 
-        active: true, type, sprite, emotion: 'happy', order: chosenItem, patience: 100, 
-        bubbleGroup, patienceBar, serveHitbox 
+      // لمس الزبون لتحديده
+      const hitbox = scene.add.rectangle(x, y - 60, 150, 260, 0x000000, 0).setInteractive({ useHandCursor: true }).setDepth(4);
+      hitbox.on('pointerdown', () => {
+        gameState.selectedCustomerIndex = slotIndex;
+        updateCustomerSelectionVisuals();
+      });
+
+      customers[slotIndex] = {
+        active: true, slotIndex, type, sprite, emotion: 'happy', order: chosenItem, patience: 100,
+        bubbleBg, tail, orderPreview, pBarBg, patienceBar, selectIndicator, hitbox
       };
-
-      serveHitbox.on('pointerdown', () => attemptDelivery(scene, slotIndex));
     }
 
-    function attemptDelivery(scene, slotIndex) {
-      const cust = customers[slotIndex];
-      if (!cust || !cust.active) return;
+    function updateCustomerSelectionVisuals() {
+      customers.forEach((cust, idx) => {
+        if (!cust || !cust.active) return;
+        const isSelected = (idx === gameState.selectedCustomerIndex);
+        cust.selectIndicator.setVisible(isSelected);
+        cust.bubbleBg.setStrokeStyle(isSelected ? 5 : 3, isSelected ? 0xf1c40f : 0x000000);
+      });
+    }
 
-      let isSuccess = false;
-      let earned = 0;
+    function deliverItem(scene, itemType, onConsumed) {
+      const idx = gameState.selectedCustomerIndex;
+      const cust = customers[idx];
 
-      if (cust.order === 'ful' && gameState.stations.ful.readyPlates > 0) {
-        gameState.stations.ful.readyPlates--; earned = gameState.prices.ful.base + gameState.prices.ful.olive_oil; isSuccess = true;
-      } else if (cust.order === 'tamees' && gameState.stations.tamees.readyBread > 0) {
-        gameState.stations.tamees.readyBread--; earned = gameState.prices.tamees.base; isSuccess = true;
-      } else if (cust.order === 'tea' && gameState.stations.tea.cupsReady > 0) {
-        gameState.stations.tea.cupsReady--; earned = gameState.prices.tea.base; isSuccess = true;
+      if (!cust || !cust.active) {
+        showFloatingText(scene, 480, 280, 'اختر زبوناً أولاً!', '#f1c40f');
+        return;
       }
 
-      if (isSuccess) {
-        const payout = Math.round(earned * (cust.patience / 100));
-        gameState.money += Math.max(1, payout);
+      onConsumed(); // يستهلك الطلب الجاهز فوراً
+
+      if (cust.order === itemType) {
+        // تسليم ناجح
+        let earned = (itemType === 'ful') ? 6 : ((itemType === 'tamees') ? 1 : 2);
+        let payout = Math.max(1, Math.round(earned * (cust.patience / 100)));
+        gameState.money += payout;
         gameState.xp += 10;
         updateUI();
-        
-        // تأثير الفرح للزبون
+
         cust.sprite.setTexture(`${cust.type}_happy`);
-        scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y - 30, duration: 200, yoyo: true, repeat: 1 });
-        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 100, `+${Math.max(1, payout)} ريال`, '#2ecc71');
-        
-        clearCustomer(scene, slotIndex);
-        scene.time.delayedCall(1200, () => spawnCustomer(scene, slotIndex));
+        scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y - 25, duration: 150, yoyo: true, repeat: 1 });
+        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 120, `+${payout} ريال`, '#2ecc71');
+
+        clearCustomer(scene, idx);
+        scene.time.delayedCall(1200, () => {
+          spawnCustomer(scene, idx);
+          updateCustomerSelectionVisuals();
+        });
       } else {
+        // تسليم خاطئ
         cust.patience = Math.max(0, cust.patience - 25);
-        scene.cameras.main.shake(150, 0.01);
-        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 100, 'طلب خاطئ!', '#ff4757');
+        scene.cameras.main.shake(150, 0.012);
+        showFloatingText(scene, cust.sprite.x, cust.sprite.y - 120, 'طلب خاطئ!', '#ff4757');
       }
     }
 
     function custFailed(scene, slotIndex) {
       const cust = customers[slotIndex];
-      cust.sprite.setTexture(`${cust.type}_angry`); // غضب إجباري
-      
-      // أنيميشن المغادرة غاضباً (سقوط لأسفل)
-      scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y + 100, alpha: 0, duration: 600, ease: 'Power2' });
-      
-      clearCustomer(scene, slotIndex, true); // True = اترك الـ Sprite لينهي الأنيميشن
-      
+      cust.sprite.setTexture(`${cust.type}_angry`);
+      scene.tweens.add({ targets: cust.sprite, y: cust.sprite.y + 90, alpha: 0, duration: 500, ease: 'Power2' });
+      clearCustomer(scene, slotIndex, true);
+
       gameState.strikes++;
       updateUI();
       scene.cameras.main.flash(300, 255, 0, 0);
@@ -393,7 +593,10 @@
         scene.cameras.main.fade(1000, 0, 0, 0);
         scene.time.delayedCall(1200, () => location.reload());
       } else {
-        scene.time.delayedCall(1500, () => spawnCustomer(scene, slotIndex));
+        scene.time.delayedCall(1400, () => {
+          spawnCustomer(scene, slotIndex);
+          updateCustomerSelectionVisuals();
+        });
       }
     }
 
@@ -401,10 +604,16 @@
       const cust = customers[slotIndex];
       if (!cust) return;
       cust.active = false;
-      cust.bubbleGroup.destroy(true); // يدمر كل محتويات الفقاعة
-      
+      cust.bubbleBg.destroy();
+      cust.tail.destroy();
+      cust.orderPreview.destroy();
+      cust.pBarBg.destroy();
+      cust.patienceBar.destroy();
+      cust.selectIndicator.destroy();
+      cust.hitbox.destroy();
+
       if (!keepSprite) {
-        scene.tweens.add({ targets: cust.sprite, alpha: 0, duration: 300, onComplete: () => cust.sprite.destroy() });
+        scene.tweens.add({ targets: cust.sprite, alpha: 0, duration: 250, onComplete: () => cust.sprite.destroy() });
       }
     }
   </script>
