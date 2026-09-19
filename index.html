@@ -94,7 +94,7 @@
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: 1280, // العرض الجديد المخصص للهواتف الرائدة
+        width: 1280,
         height: 600
       },
       render: {
@@ -120,16 +120,12 @@
       xp: 0,
       selectedCustomerIndex: 0,
       stations: {
-        ful: { servings: 5, maxServings: 5, isCooking: false, plateState: 'none' },
-        tamees: { doughState: 'none', ovenState: 'empty', readyBread: false },
-        tea: { cups: 4, maxCups: 4, isBoiling: false, cupState: 'none' }
+        ful: { servings: 5, maxServings: 5, isCooking: false, plateState: 'none' }, // none, empty, filled, covered
+        tamees: { doughState: 'none', ovenState: 'empty', readyBread: false }, // doughState: none, ball, flat | ovenState: empty, baking, done
+        tea: { cups: 4, maxCups: 4, isBoiling: false, cupState: 'none' } // none, empty, filled
       },
       costs: { refillFul: 5, boilTea: 4 },
-      prices: {
-        ful: { base: 4, olive_oil: 2 },
-        tamees: { base: 1 },
-        tea: { base: 2 }
-      }
+      prices: { ful: 4, tamees: 1, tea: 2 }
     };
 
     let customers = [];
@@ -139,38 +135,43 @@
     let teaViews = {};
 
     function preload() {
-      // البيئة والكاونتر الجديد
+      // البيئة والكاونتر
       this.load.image('bg_restaurant', 'environment/sprite-bg.jpg');
       this.load.image('counter_metal', 'environment/sprite-counter.png');
 
-      // الفول
-      this.load.image('pot_full', 'Fuwl_sprites_14/sprite-6-3.png');
-      this.load.image('pot_empty_off', 'Fuwl_sprites_14/sprite-6-2.png');
-      this.load.image('pot_empty_on', 'Fuwl_sprites_14/sprite-6-4.png');
-      this.load.image('single_plate', 'Fuwl_sprites_14/sprite-6-1_2.png');
-      this.load.image('ful_closed', 'Fuwl_sprites_14/sprite-3-2.png');
+      // الفول (المسارات الجديدة)
+      this.load.image('fuwl_oven_empty', 'fuwl_sprites/fuwl-oven_empty.png');
+      this.load.image('fuwl_oven_cooking', 'fuwl_sprites/fuwl-oven_cooking.png');
+      this.load.image('fuwl_oven_cooked', 'fuwl_sprites/fuwl-oven_cooked.png');
+      this.load.image('fuwl_bowl_pack', 'fuwl_sprites/fuwl-bowl_pack.png');
+      this.load.image('fuwl_bowl_empty', 'fuwl_sprites/fuwl-bowl_empty.png');
+      this.load.image('fuwl_bowl_filled', 'fuwl_sprites/fuwl-bowl_filled.png');
+      this.load.image('fuwl_cover_pack', 'fuwl_sprites/fuwl-cover_pack.png');
+      this.load.image('fuwl_bowl_covered', 'fuwl_sprites/fuwl-bowl_covered.png');
 
-      // التميس
-      this.load.image('dough_ball', 'Tamees_sprites_9/sprite-2-1.png');
-      this.load.image('dough_box', 'Tamees_sprites_9/sprite-2-2.png');
-      this.load.image('tamees_plain', 'Tamees_sprites_9/sprite-2-3.png');
-      this.load.image('dough_flat', 'Tamees_sprites_9/sprite-3-1.png');
-      this.load.image('oven_empty', 'Tamees_sprites_9/sprite-5-3.png');
-      this.load.image('oven_baking', 'Tamees_sprites_9/sprite-5-4.png');
+      // التميس (المسارات الجديدة)
+      this.load.image('tamees_dough_box', 'tamees_sprites/tamees-dough_box.png');
+      this.load.image('tamees_dough_ball', 'tamees_sprites/tamees-dough.png');
+      this.load.image('tamees_dough_flat', 'tamees_sprites/Tamees-dough_straightened.png');
+      this.load.image('tamees_oven_empty', 'tamees_sprites/tamees-oven_empty.png');
+      this.load.image('tamees_oven_cooking', 'tamees_sprites/tamees-oven_cooking.png');
+      this.load.image('tamees_oven_done', 'tamees_sprites/tamees-oven_done.png');
+      this.load.image('tamees_cooked', 'tamees_sprites/tamees-cooked.png');
 
-      // الشاي والزبائن
-      this.load.image('teapot_full', 'Tea_sprites_9/sprite-2-1.png');
-      this.load.image('teapot_empty', 'Tea_sprites_9/sprite-2-2.png');
-      this.load.image('cup_empty', 'Tea_sprites_9/sprite-2-4.png');
-      this.load.image('cup_full', 'Tea_sprites_9/sprite-2-5.png');
-      this.load.image('cups_stack', 'Tea_sprites_9/sprite-5-5_3.png');
+      // الشاي (المسارات الجديدة)
+      this.load.image('tea_pot_empty', 'tea_sprites/tea-pot_empty.png');
+      this.load.image('tea_pot_filled', 'tea_sprites/tea-pot_filled.png');
+      this.load.image('tea_cup_pack', 'tea_sprites/tea-cup_pack.png');
+      this.load.image('tea_cup_empty', 'tea_sprites/tea-cup_empty.png');
+      this.load.image('tea_cup_filled', 'tea_sprites/tea-cup_filled.png');
 
-      this.load.image('girl_happy', 'Tea_sprites_9/1789318266082.png');
-      this.load.image('girl_neutral', 'Tea_sprites_9/1789318242744.png');
-      this.load.image('girl_angry', 'Tea_sprites_9/1789318194567.png');
-      this.load.image('man_happy', 'Tea_sprites_9/1789318139305.png');
-      this.load.image('man_neutral', 'Tea_sprites_9/1789318081083.png');
-      this.load.image('man_angry', 'Tea_sprites_9/1789318077271.png');
+      // الزبائن (المسارات الجديدة)
+      this.load.image('girl_happy', 'characters/girl-happy.png');
+      this.load.image('girl_neutral', 'characters/girl-nutural.png'); // الانتباه للاسم nutural
+      this.load.image('girl_angry', 'characters/girl-angry.png');
+      this.load.image('man_happy', 'characters/man-happy.png');
+      this.load.image('man_neutral', 'characters/man-nutural.png'); // الانتباه للاسم nutural
+      this.load.image('man_angry', 'characters/man-angry.png');
     }
 
     function applySquash(scene, target) {
@@ -218,21 +219,16 @@
       const scene = this;
       window.addEventListener('resize', () => scene.scale.refresh());
 
-      // 1. المركز 640 لتغطية عرض 1280
       scene.add.image(640, 300, 'bg_restaurant').setDisplaySize(1280, 600).setDepth(0);
 
-      // 2. الزبائن
       for (let i = 0; i < 3; i++) spawnCustomer(scene, i);
 
-      // 3. الكاونتر المعدني (توسيع لـ 1280 بكسل)
       scene.add.image(640, 520, 'counter_metal').setDisplaySize(1280, 160).setDepth(2);
 
-      // 4. الشريط العلوي
       scene.add.rectangle(640, 25, 1280, 50, 0x1e272e, 0.85).setDepth(10);
       uiText = scene.add.text(20, 14, '', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', fontStyle: 'bold', fill: '#ffffff' }).setDepth(11);
       updateUI();
 
-      // 5. المحطات بالإحداثيات الموزعة على 1280 بكسل
       setupFulStation(scene);
       setupTameesStation(scene);
       setupTeaStation(scene);
@@ -276,12 +272,19 @@
       uiText.setText(`الرصيد: ${gameState.money} ريال  |  الأخطاء: ${gameState.strikes}/${gameState.maxStrikes}  |  الخبرة: ${gameState.xp}`);
     }
 
+    // ==========================================
+    // محطة الفول
+    // ==========================================
     function setupFulStation(scene) {
-      fulViews.pot = scene.add.image(185, 450, 'pot_full').setDisplaySize(110, 135).setDepth(5).setInteractive({ useHandCursor: true });
+      fulViews.pot = scene.add.image(185, 450, 'fuwl_oven_cooked').setDisplaySize(115, 140).setDepth(5).setInteractive({ useHandCursor: true });
       fulViews.label = scene.add.text(185, 535, 'الجرة: 5/5', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
-      fulViews.stack = scene.add.image(280, 480, 'single_plate').setDisplaySize(55, 45).setDepth(5).setInteractive({ useHandCursor: true });
-      fulViews.plate = scene.add.image(345, 475, 'single_plate').setDisplaySize(55, 45).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+      
+      fulViews.bowlPack = scene.add.image(280, 480, 'fuwl_bowl_pack').setDisplaySize(55, 60).setDepth(5).setInteractive({ useHandCursor: true });
+      fulViews.coverPack = scene.add.image(350, 485, 'fuwl_cover_pack').setDisplaySize(55, 45).setDepth(5).setInteractive({ useHandCursor: true });
+      
+      fulViews.plate = scene.add.image(420, 485, 'fuwl_bowl_empty').setDisplaySize(65, 50).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
 
+      // الضغط على الجرة للطبخ
       fulViews.pot.on('pointerdown', () => {
         applySquash(scene, fulViews.pot);
         const ful = gameState.stations.ful;
@@ -292,7 +295,7 @@
             updateUI();
             showFloatingText(scene, 185, 410, '-5 ريال', '#ff4757');
             
-            fulViews.pot.setTexture('pot_empty_on');
+            fulViews.pot.setTexture('fuwl_oven_cooking');
             let shake = scene.tweens.add({ targets: fulViews.pot, angle: { from: -2, to: 2 }, duration: 100, yoyo: true, repeat: -1 });
             
             showProgressBar(scene, 140, 390, 90, 3000, 0xe74c3c, () => {
@@ -308,34 +311,47 @@
         }
       });
 
-      fulViews.stack.on('pointerdown', () => {
-        applySquash(scene, fulViews.stack);
+      // الضغط على رصة العلب لإنزال علبة فارغة
+      fulViews.bowlPack.on('pointerdown', () => {
+        applySquash(scene, fulViews.bowlPack);
         if (gameState.stations.ful.plateState === 'none') {
           gameState.stations.ful.plateState = 'empty';
           updateFulVisuals();
         }
       });
 
+      // الضغط على رصة الأغطية لتغطية العلبة المعبأة
+      fulViews.coverPack.on('pointerdown', () => {
+        applySquash(scene, fulViews.coverPack);
+        if (gameState.stations.ful.plateState === 'filled') {
+          gameState.stations.ful.plateState = 'covered';
+          updateFulVisuals();
+        }
+      });
+
+      // الضغط على صحن الفول المجهز (الغرف أو التسليم)
       fulViews.plate.on('pointerdown', () => {
         applySquash(scene, fulViews.plate);
         const ful = gameState.stations.ful;
         if (ful.plateState === 'empty') {
           if (ful.servings > 0 && !ful.isCooking) {
-            ful.plateState = 'scooping';
+            ful.plateState = 'scooping'; // حالة مؤقتة
             let shake = scene.tweens.add({ targets: fulViews.pot, y: fulViews.pot.y - 4, duration: 80, yoyo: true, repeat: -1 });
-            showProgressBar(scene, 305, 430, 80, 1200, 0xf1c40f, () => {
+            showProgressBar(scene, 380, 440, 80, 1200, 0xf1c40f, () => {
               shake.stop();
               fulViews.pot.y = 450;
               ful.servings--;
-              ful.plateState = 'ready';
+              ful.plateState = 'filled';
               updateFulVisuals();
             });
           }
-        } else if (ful.plateState === 'ready') {
+        } else if (ful.plateState === 'covered') { // يجب أن يكون مغطى للتسليم
           deliverItem(scene, 'ful', () => {
             ful.plateState = 'none';
             updateFulVisuals();
           });
+        } else if (ful.plateState === 'filled') {
+          showFloatingText(scene, 420, 440, 'غطِّ العلبة!', '#f39c12');
         }
       });
 
@@ -345,26 +361,31 @@
     function updateFulVisuals() {
       const ful = gameState.stations.ful;
       if (ful.servings > 0) {
-        fulViews.pot.setTexture('pot_full');
+        fulViews.pot.setTexture('fuwl_oven_cooked');
       } else {
-        fulViews.pot.setTexture(ful.isCooking ? 'pot_empty_on' : 'pot_empty_off');
+        fulViews.pot.setTexture(ful.isCooking ? 'fuwl_oven_cooking' : 'fuwl_oven_empty');
       }
       fulViews.label.setText(`الجرة: ${ful.servings}/${ful.maxServings}`);
 
       if (ful.plateState === 'none') {
         fulViews.plate.setVisible(false);
       } else if (ful.plateState === 'empty' || ful.plateState === 'scooping') {
-        fulViews.plate.setVisible(true).setTexture('single_plate').setDisplaySize(55, 45);
-      } else if (ful.plateState === 'ready') {
-        fulViews.plate.setVisible(true).setTexture('ful_closed').setDisplaySize(75, 55);
+        fulViews.plate.setVisible(true).setTexture('fuwl_bowl_empty').setDisplaySize(65, 50);
+      } else if (ful.plateState === 'filled') {
+        fulViews.plate.setVisible(true).setTexture('fuwl_bowl_filled').setDisplaySize(65, 50);
+      } else if (ful.plateState === 'covered') {
+        fulViews.plate.setVisible(true).setTexture('fuwl_bowl_covered').setDisplaySize(65, 55);
       }
     }
 
+    // ==========================================
+    // محطة التميس
+    // ==========================================
     function setupTameesStation(scene) {
-      tameesViews.box = scene.add.image(510, 480, 'dough_box').setDisplaySize(85, 65).setDepth(5).setInteractive({ useHandCursor: true });
-      tameesViews.prep = scene.add.image(590, 480, 'dough_ball').setDisplaySize(60, 50).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
-      tameesViews.oven = scene.add.image(685, 445, 'oven_empty').setDisplaySize(115, 135).setDepth(5).setInteractive({ useHandCursor: true });
-      tameesViews.readyBread = scene.add.image(765, 480, 'tamees_plain').setDisplaySize(75, 75).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+      tameesViews.box = scene.add.image(540, 480, 'tamees_dough_box').setDisplaySize(85, 65).setDepth(5).setInteractive({ useHandCursor: true });
+      tameesViews.prep = scene.add.image(620, 480, 'tamees_dough_ball').setDisplaySize(60, 50).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+      tameesViews.oven = scene.add.image(725, 455, 'tamees_oven_empty').setDisplaySize(125, 115).setDepth(5).setInteractive({ useHandCursor: true });
+      tameesViews.readyBread = scene.add.image(815, 480, 'tamees_cooked').setDisplaySize(85, 75).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
 
       tameesViews.box.on('pointerdown', () => {
         applySquash(scene, tameesViews.box);
@@ -385,8 +406,8 @@
             t.doughState = 'none';
             t.ovenState = 'baking';
             updateTameesVisuals();
-            showProgressBar(scene, 640, 390, 90, 2500, 0xe67e22, () => {
-              t.ovenState = 'ready';
+            showProgressBar(scene, 680, 390, 90, 2500, 0xe67e22, () => {
+              t.ovenState = 'done';
               updateTameesVisuals();
             });
           }
@@ -396,7 +417,7 @@
       tameesViews.oven.on('pointerdown', () => {
         applySquash(scene, tameesViews.oven);
         const t = gameState.stations.tamees;
-        if (t.ovenState === 'ready' && !t.readyBread) {
+        if (t.ovenState === 'done' && !t.readyBread) {
           t.ovenState = 'empty';
           t.readyBread = true;
           updateTameesVisuals();
@@ -416,26 +437,35 @@
 
     function updateTameesVisuals() {
       const t = gameState.stations.tamees;
+      
       if (t.doughState === 'none') {
         tameesViews.prep.setVisible(false);
       } else if (t.doughState === 'ball') {
-        tameesViews.prep.setVisible(true).setTexture('dough_ball').setDisplaySize(55, 45);
+        tameesViews.prep.setVisible(true).setTexture('tamees_dough_ball').setDisplaySize(55, 45);
       } else if (t.doughState === 'flat') {
-        tameesViews.prep.setVisible(true).setTexture('dough_flat').setDisplaySize(70, 45);
+        tameesViews.prep.setVisible(true).setTexture('tamees_dough_flat').setDisplaySize(75, 45);
       }
+
       if (t.ovenState === 'baking') {
-        tameesViews.oven.setTexture('oven_baking');
+        tameesViews.oven.setTexture('tamees_oven_cooking');
+      } else if (t.ovenState === 'done') {
+        tameesViews.oven.setTexture('tamees_oven_done');
       } else {
-        tameesViews.oven.setTexture('oven_empty');
+        tameesViews.oven.setTexture('tamees_oven_empty');
       }
+
       tameesViews.readyBread.setVisible(t.readyBread);
     }
 
+    // ==========================================
+    // محطة الشاي
+    // ==========================================
     function setupTeaStation(scene) {
-      teaViews.pot = scene.add.image(915, 455, 'teapot_full').setDisplaySize(115, 100).setDepth(5).setInteractive({ useHandCursor: true });
-      teaViews.label = scene.add.text(915, 535, 'براد: 4/4', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
-      teaViews.stack = scene.add.image(1005, 480, 'cups_stack').setDisplaySize(50, 75).setDepth(5).setInteractive({ useHandCursor: true });
-      teaViews.cup = scene.add.image(1070, 475, 'cup_empty').setDisplaySize(50, 65).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
+      teaViews.pot = scene.add.image(945, 465, 'tea_pot_filled').setDisplaySize(95, 105).setDepth(5).setInteractive({ useHandCursor: true });
+      teaViews.label = scene.add.text(945, 535, 'براد: 4/4', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
+      
+      teaViews.stack = scene.add.image(1030, 480, 'tea_cup_pack').setDisplaySize(50, 75).setDepth(5).setInteractive({ useHandCursor: true });
+      teaViews.cup = scene.add.image(1095, 475, 'tea_cup_empty').setDisplaySize(50, 65).setDepth(5).setVisible(false).setInteractive({ useHandCursor: true });
 
       teaViews.pot.on('pointerdown', () => {
         applySquash(scene, teaViews.pot);
@@ -445,10 +475,10 @@
             gameState.money -= gameState.costs.boilTea;
             tea.isBoiling = true;
             updateUI();
-            showFloatingText(scene, 915, 410, '-4 ريال', '#ff4757');
+            showFloatingText(scene, 945, 410, '-4 ريال', '#ff4757');
             let shake = scene.tweens.add({ targets: teaViews.pot, angle: { from: -3, to: 3 }, duration: 80, yoyo: true, repeat: -1 });
 
-            showProgressBar(scene, 870, 395, 90, 2500, 0x3498db, () => {
+            showProgressBar(scene, 900, 395, 90, 2500, 0x3498db, () => {
               shake.stop();
               teaViews.pot.angle = 0;
               tea.cups = tea.maxCups;
@@ -456,7 +486,7 @@
               updateTeaVisuals();
             });
           } else {
-            showFloatingText(scene, 915, 410, 'لا يوجد رصيد!', '#ff4757');
+            showFloatingText(scene, 945, 410, 'لا يوجد رصيد!', '#ff4757');
           }
         }
       });
@@ -474,15 +504,15 @@
         const tea = gameState.stations.tea;
         if (tea.cupState === 'empty') {
           if (tea.cups > 0 && !tea.isBoiling) {
-            tea.cupState = 'pouring';
+            tea.cupState = 'pouring'; // حالة مؤقتة
             let tilt = scene.tweens.add({ targets: teaViews.pot, angle: -15, duration: 200, yoyo: true });
-            showProgressBar(scene, 1030, 430, 75, 1000, 0x16a085, () => {
+            showProgressBar(scene, 1050, 430, 75, 1000, 0x16a085, () => {
               tea.cups--;
-              tea.cupState = 'ready';
+              tea.cupState = 'filled';
               updateTeaVisuals();
             });
           }
-        } else if (tea.cupState === 'ready') {
+        } else if (tea.cupState === 'filled') {
           deliverItem(scene, 'tea', () => {
             tea.cupState = 'none';
             updateTeaVisuals();
@@ -495,20 +525,22 @@
 
     function updateTeaVisuals() {
       const tea = gameState.stations.tea;
-      teaViews.pot.setTexture(tea.cups > 0 ? 'teapot_full' : 'teapot_empty');
+      teaViews.pot.setTexture(tea.cups > 0 ? 'tea_pot_filled' : 'tea_pot_empty');
       teaViews.label.setText(`براد: ${tea.cups}/${tea.maxCups}`);
 
       if (tea.cupState === 'none') {
         teaViews.cup.setVisible(false);
       } else if (tea.cupState === 'empty' || tea.cupState === 'pouring') {
-        teaViews.cup.setVisible(true).setTexture('cup_empty');
-      } else if (tea.cupState === 'ready') {
-        teaViews.cup.setVisible(true).setTexture('cup_full');
+        teaViews.cup.setVisible(true).setTexture('tea_cup_empty');
+      } else if (tea.cupState === 'filled') {
+        teaViews.cup.setVisible(true).setTexture('tea_cup_filled');
       }
     }
 
+    // ==========================================
+    // إدارة الزبائن وتحديد الخدمة والتسليم
+    // ==========================================
     function spawnCustomer(scene, slotIndex) {
-      // الزبائن موزعون بتناسق على 1280 بكسل
       const x = 280 + slotIndex * 360; 
       const y = 300;
       const charTypes = ['girl', 'man'];
@@ -522,7 +554,7 @@
       const bubbleBg = scene.add.rectangle(x, y - 160, 120, 110, 0xffffff, 0.95).setStrokeStyle(3, 0x000000).setDepth(3);
       const tail = scene.add.triangle(x, y - 105, 0, -8, 12, 8, -12, 8, 0xffffff).setStrokeStyle(3, 0x000000).setDepth(2.9);
 
-      let orderKey = chosenItem === 'tamees' ? 'tamees_plain' : (chosenItem === 'tea' ? 'cup_full' : 'ful_closed');
+      let orderKey = chosenItem === 'tamees' ? 'tamees_cooked' : (chosenItem === 'tea' ? 'tea_cup_filled' : 'fuwl_bowl_covered');
       const orderPreview = scene.add.image(x, y - 160, orderKey).setDisplaySize(48, 48).setDepth(4);
 
       const pBarBg = scene.add.rectangle(x - 45, y - 120, 90, 8, 0x1e272e).setOrigin(0, 0.5).setDepth(4);
