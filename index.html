@@ -169,13 +169,10 @@
       this.load.image('man_angry', 'characters/man-angry.png');
     }
 
-    // دالة لضبط الحجم بشكل متناسق تماماً مع تفعيل منطقة النقر بدقة
     function setupSpriteUniform(sprite, desiredWidth, isClickable = true) {
       const s = desiredWidth / sprite.width;
       sprite.setScale(s);
       sprite.baseScale = s;
-      
-      // إزالة pixelPerfect والاعتماد على حجم الصورة المصغر لتفادي الأخطاء
       if (isClickable) {
         sprite.setInteractive({ useHandCursor: true });
       } else {
@@ -290,18 +287,19 @@
     }
 
     function setupFulStation(scene) {
-      // الجرة: ضخمة وملتصقة بأقصى اليسار
-      fulViews.pot = scene.add.image(130, 415, 'fuwl_oven_cooked').setDepth(5);
-      setupSpriteUniform(fulViews.pot, 260, true); 
-      fulViews.label = scene.add.text(130, 520, 'الجرة: 5/5', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
+      // الجرة مصغرة قليلاً لتناسب المشهد (220 بكسل)
+      fulViews.pot = scene.add.image(130, 430, 'fuwl_oven_cooked').setDepth(5);
+      setupSpriteUniform(fulViews.pot, 220, true); 
+      fulViews.label = scene.add.text(130, 525, 'الجرة: 5/5', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
       
-      fulViews.bowlPack = scene.add.image(280, 470, 'fuwl_bowl_pack').setDepth(5);
-      setupSpriteUniform(fulViews.bowlPack, 65, true);
+      // مباعدة واضحة بين رصة العلب والأغطية لمنع التداخل
+      fulViews.bowlPack = scene.add.image(275, 470, 'fuwl_bowl_pack').setDepth(5);
+      setupSpriteUniform(fulViews.bowlPack, 60, true);
       
-      fulViews.coverPack = scene.add.image(350, 475, 'fuwl_cover_pack').setDepth(5);
-      setupSpriteUniform(fulViews.coverPack, 60, true);
+      fulViews.coverPack = scene.add.image(365, 475, 'fuwl_cover_pack').setDepth(5);
+      setupSpriteUniform(fulViews.coverPack, 55, true);
       
-      fulViews.plate = scene.add.image(315, 550, 'fuwl_bowl_empty').setDepth(5).setVisible(false);
+      fulViews.plate = scene.add.image(320, 550, 'fuwl_bowl_empty').setDepth(5).setVisible(false);
       setupSpriteUniform(fulViews.plate, 80, true);
 
       fulViews.pot.on('pointerdown', () => {
@@ -312,13 +310,13 @@
             gameState.money -= gameState.costs.refillFul;
             ful.isCooking = true;
             updateUI();
-            showFloatingText(scene, 130, 360, '-5 ريال', '#ff4757');
+            showFloatingText(scene, 130, 370, '-5 ريال', '#ff4757');
             
             fulViews.pot.setTexture('fuwl_oven_cooking');
-            setupSpriteUniform(fulViews.pot, 260, true);
+            setupSpriteUniform(fulViews.pot, 220, true);
             let shake = scene.tweens.add({ targets: fulViews.pot, angle: { from: -2, to: 2 }, duration: 100, yoyo: true, repeat: -1 });
             
-            showProgressBar(scene, 85, 340, 90, 3000, 0xe74c3c, () => {
+            showProgressBar(scene, 85, 350, 90, 3000, 0xe74c3c, () => {
               shake.stop();
               fulViews.pot.angle = 0;
               ful.servings = ful.maxServings;
@@ -326,7 +324,7 @@
               updateFulVisuals();
             });
           } else {
-            showFloatingText(scene, 130, 360, 'لا يوجد رصيد!', '#ff4757');
+            showFloatingText(scene, 130, 370, 'لا يوجد رصيد!', '#ff4757');
           }
         }
       });
@@ -354,9 +352,9 @@
           if (ful.servings > 0 && !ful.isCooking) {
             ful.plateState = 'scooping'; 
             let shake = scene.tweens.add({ targets: fulViews.pot, y: fulViews.pot.y - 4, duration: 80, yoyo: true, repeat: -1 });
-            showProgressBar(scene, 270, 500, 90, 1200, 0xf1c40f, () => {
+            showProgressBar(scene, 275, 500, 90, 1200, 0xf1c40f, () => {
               shake.stop();
-              fulViews.pot.y = 415;
+              fulViews.pot.y = 430;
               ful.servings--;
               ful.plateState = 'filled';
               updateFulVisuals();
@@ -368,7 +366,7 @@
             updateFulVisuals();
           });
         } else if (ful.plateState === 'filled') {
-          showFloatingText(scene, 315, 500, 'غطِّ العلبة!', '#f39c12');
+          showFloatingText(scene, 320, 500, 'غطِّ العلبة!', '#f39c12');
         }
       });
 
@@ -378,7 +376,7 @@
     function updateFulVisuals() {
       const ful = gameState.stations.ful;
       fulViews.pot.setTexture(ful.isCooking ? 'fuwl_oven_cooking' : (ful.servings > 0 ? 'fuwl_oven_cooked' : 'fuwl_oven_empty'));
-      setupSpriteUniform(fulViews.pot, 260, true);
+      setupSpriteUniform(fulViews.pot, 220, true);
       fulViews.label.setText(`الجرة: ${ful.servings}/${ful.maxServings}`);
 
       if (ful.plateState === 'none') {
@@ -396,15 +394,13 @@
     }
 
     function setupTameesStation(scene) {
-      // التنور: أقصى اليمين
       tameesViews.oven = scene.add.image(1160, 425, 'tamees_oven_empty').setDepth(5);
       setupSpriteUniform(tameesViews.oven, 210, true);
       
-      // صندوق العجين: ضخم وملتصق بيسار التنور (المربع الأزرق)
-      tameesViews.box = scene.add.image(980, 480, 'tamees_dough_box').setDepth(5);
-      setupSpriteUniform(tameesViews.box, 135, true);
+      // تكبير طفيف لصندوق التميس (155 بكسل)
+      tameesViews.box = scene.add.image(965, 475, 'tamees_dough_box').setDepth(5);
+      setupSpriteUniform(tameesViews.box, 155, true);
       
-      // العجين المجهز: تم ضبط الإحداثيات لتتطابق بدقة أسفل التنور والصندوق
       tameesViews.prep = scene.add.image(1085, 560, 'tamees_dough_ball').setDepth(5).setVisible(false);
       setupSpriteUniform(tameesViews.prep, 70, true);
       
@@ -488,16 +484,15 @@
     }
 
     function setupTeaStation(scene) {
-      // براد الشاي: تم تكبيره ونقله لليمين (الإطار الأبيض)
-      teaViews.pot = scene.add.image(840, 445, 'tea_pot_filled').setDepth(5);
-      setupSpriteUniform(teaViews.pot, 155, true);
-      teaViews.label = scene.add.text(840, 525, 'براد: 4/4', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
-      
-      // حزمة الأكواب: تم نقلها لليسار (المستطيل الأصفر)
-      teaViews.stack = scene.add.image(520, 480, 'tea_cup_pack').setDepth(5);
+      // حزمة الأكواب في المنتصف لليسار قليلاً
+      teaViews.stack = scene.add.image(530, 480, 'tea_cup_pack').setDepth(5);
       setupSpriteUniform(teaViews.stack, 60, true);
+
+      // نقل البراد إلى المربع الأصفر (X = 645) بجانب حزمة الأكواب مباشرة
+      teaViews.pot = scene.add.image(645, 455, 'tea_pot_filled').setDepth(5);
+      setupSpriteUniform(teaViews.pot, 135, true);
+      teaViews.label = scene.add.text(645, 525, 'براد: 4/4', { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(6);
       
-      // الكوب المجهز: بقى في موقعه الطبيعي أمام منطقة التجهيز
       teaViews.cup = scene.add.image(720, 550, 'tea_cup_empty').setDepth(5).setVisible(false);
       setupSpriteUniform(teaViews.cup, 65, true);
 
@@ -509,10 +504,10 @@
             gameState.money -= gameState.costs.boilTea;
             tea.isBoiling = true;
             updateUI();
-            showFloatingText(scene, 840, 370, '-4 ريال', '#ff4757');
+            showFloatingText(scene, 645, 380, '-4 ريال', '#ff4757');
             let shake = scene.tweens.add({ targets: teaViews.pot, angle: { from: -3, to: 3 }, duration: 80, yoyo: true, repeat: -1 });
 
-            showProgressBar(scene, 795, 360, 90, 2500, 0x3498db, () => {
+            showProgressBar(scene, 600, 370, 90, 2500, 0x3498db, () => {
               shake.stop();
               teaViews.pot.angle = 0;
               tea.cups = tea.maxCups;
@@ -520,7 +515,7 @@
               updateTeaVisuals();
             });
           } else {
-            showFloatingText(scene, 840, 370, 'لا يوجد رصيد!', '#ff4757');
+            showFloatingText(scene, 645, 380, 'لا يوجد رصيد!', '#ff4757');
           }
         }
       });
@@ -560,7 +555,7 @@
     function updateTeaVisuals() {
       const tea = gameState.stations.tea;
       teaViews.pot.setTexture(tea.cups > 0 ? 'tea_pot_filled' : 'tea_pot_empty');
-      setupSpriteUniform(teaViews.pot, 155, true);
+      setupSpriteUniform(teaViews.pot, 135, true);
       teaViews.label.setText(`براد: ${tea.cups}/${tea.maxCups}`);
 
       if (tea.cupState === 'none') {
@@ -586,17 +581,17 @@
       const targetY = isGirl ? 370 : 330; 
 
       const sprite = scene.add.image(x, startY, `${type}_happy`).setDepth(1);
-      setupSpriteUniform(sprite, 160, false); // إزالة النقر من جسد الشخصية
+      setupSpriteUniform(sprite, 160, false);
       scene.tweens.add({ targets: sprite, y: targetY, alpha: 1, duration: 400, ease: 'Back.easeOut' });
 
-      // صندوق الطلب الشفاف بجانب الزبون (أصبح هو الزر التفاعلي الوحيد)
-      const boxX = x + 110; 
-      const boxY = targetY - 40; 
+      // صناديق الطلبات بالمربعات الحمراء العلوية (بارتفاع موحد Y = 160 للرجل والفتاة)
+      const boxX = x + 115; 
+      const boxY = 160; 
 
       const bubbleBg = scene.add.rectangle(boxX, boxY, 90, 100, 0xffffff, 0.85)
         .setStrokeStyle(3, 0x000000, 1)
         .setDepth(3)
-        .setInteractive({ useHandCursor: true }); // النقر هنا فقط لاختيار الزبون
+        .setInteractive({ useHandCursor: true });
 
       bubbleBg.on('pointerdown', () => {
         gameState.selectedCustomerIndex = slotIndex;
